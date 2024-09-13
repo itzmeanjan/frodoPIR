@@ -54,11 +54,24 @@ public:
     return this->elements[r_idx * cols + c_idx];
   }
 
+  // Given two matrices A, B of equal dimension, this routine can be used for performing matrix addition over Zq,
+  // returning a matrix of same dimension.
+  inline constexpr matrix_t operator+(const matrix_t<rows, cols>& rhs) const
+  {
+    matrix_t res{};
+
+    for (size_t i = 0; i < rows * cols; i++) {
+      res[i] = (*this)[i] + rhs[i];
+    }
+
+    return res;
+  }
+
   // Given two matrices A ( of dimension rows x cols ) and B ( of dimension rhs_rows x rhs_cols ) s.t. cols == rhs_rows,
   // this routine can be used for multiplying them over Zq, resulting into another matrix (C) of dimension rows x rhs_cols.
   template<size_t rhs_rows, size_t rhs_cols>
     requires((cols == rhs_rows))
-  forceinline constexpr matrix_t<rows, rhs_cols> operator*(const matrix_t<rhs_rows, rhs_cols>& rhs)
+  forceinline constexpr matrix_t<rows, rhs_cols> operator*(const matrix_t<rhs_rows, rhs_cols>& rhs) const
   {
     matrix_t<rows, rhs_cols> res{};
 
