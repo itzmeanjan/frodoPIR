@@ -171,23 +171,19 @@ public:
   }
 
   // Given a matrix M of dimension `rows x cols`, this routine can be used for serializing each of its elements as
-  // four little-endian bytes and concatenating them in order to compute a byte array of length m * n * 4.
+  // four little-endian bytes and concatenating them in order to compute a byte array of length `rows * cols * 4`.
   forceinline constexpr void to_le_bytes(std::span<uint8_t, rows * cols * sizeof(zq_t)> bytes) const
   {
     for (size_t i = 0; i < rows * cols; i++) {
       const size_t boff = i * sizeof(zq_t);
 
       const auto word = (*this)[i];
-
-      bytes[boff + 0] = static_cast<uint8_t>((word >> 0u) & 0xffu);
-      bytes[boff + 1] = static_cast<uint8_t>((word >> 8u) & 0xffu);
-      bytes[boff + 2] = static_cast<uint8_t>((word >> 16u) & 0xffu);
-      bytes[boff + 3] = static_cast<uint8_t>((word >> 24u) & 0xffu);
+      frodoPIR_utils::to_le_bytes(word, bytes.subspan(boff, sizeof(word)));
     }
   }
 
-  // Given a byte array of length m * n * 4, this routine can be used for deserializing it as a matrix of dimension m x n
-  // s.t. each matrix element is computed by interpreting four consecutive bytes in little-endian order.
+  // Given a byte array of length `rows * cols * 4`, this routine can be used for deserializing it as a matrix of dimension
+  // `rows x cols` s.t. each matrix element is computed by interpreting four consecutive bytes in little-endian order.
   forceinline static matrix_t from_le_bytes(std::span<const uint8_t, rows * cols * sizeof(zq_t)> bytes)
   {
     constexpr size_t blen = bytes.size();
@@ -197,12 +193,10 @@ public:
     size_t lin_idx = 0;
 
     while (boff < blen) {
-      const zq_t word = ((static_cast<zq_t>(bytes[boff + 3]) << 24u) | (static_cast<zq_t>(bytes[boff + 2]) << 16u) |
-                         (static_cast<zq_t>(bytes[boff + 1]) << 8u) | (static_cast<zq_t>(bytes[boff + 0]) << 0u));
-
+      const auto word = frodoPIR_utils::from_le_bytes<zq_t>(bytes.subspan(boff, sizeof(zq_t)));
       res[lin_idx] = word;
 
-      boff += sizeof(zq_t);
+      boff += sizeof(word);
       lin_idx += 1;
     }
 
