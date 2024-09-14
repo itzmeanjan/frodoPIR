@@ -2,25 +2,39 @@
 #include "frodoPIR/internals/utility/force_inline.hpp"
 #include <bit>
 #include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <span>
 
 namespace frodoPIR_utils {
 
-// Given an unsigned integer as input, this routine returns TRUTH value only if `v` is power of 2, otherwise it returns FALSE.
+// Given a byte array of length n (>=0), this routine copies input bytes into destination word, of unsigned type T,
+// while placing bytes following little-endian ordering.
 template<typename T>
-forceinline constexpr bool
-is_power_of_2(const T v)
-  requires(std::is_unsigned_v<T>)
+forceinline constexpr T
+from_le_bytes(std::span<const uint8_t> bytes)
+  requires(std::is_unsigned_v<T> && (std::endian::native == std::endian::little))
 {
-  return ((v) & (v - 1)) == 0;
+  T res{};
+
+  const size_t copyable = std::min(sizeof(res), bytes.size());
+  for (size_t i = 0; i < copyable; i++) {
+    res |= (static_cast<T>(bytes[i]) << (i * std::numeric_limits<uint8_t>::digits));
+  }
+
+  return res;
 }
 
-// Given a power of 2 value `v`, this routine returns logarithm base-2 of v.
-template<size_t v>
-forceinline constexpr size_t
-log2()
-  requires((v > 0) && is_power_of_2(v))
+// Given an unsigned integer as input, this routine copies source bytes, following little-endian order, into destination
+// byte array of length n (>=0).
+forceinline constexpr void
+to_le_bytes(const std::unsigned_integral auto v, std::span<uint8_t> bytes)
+  requires(std::endian::native == std::endian::little)
 {
-  return std::countr_zero(v);
+  const size_t copyable = std::min(sizeof(v), bytes.size());
+  for (size_t i = 0; i < copyable; i++) {
+    bytes[i] = static_cast<uint8_t>(v >> (i * std::numeric_limits<uint8_t>::digits));
+  }
 }
 
 }
