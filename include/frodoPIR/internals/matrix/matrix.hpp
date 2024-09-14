@@ -2,6 +2,7 @@
 #include "frodoPIR/internals/rng/prng.hpp"
 #include "frodoPIR/internals/utility/force_inline.hpp"
 #include "frodoPIR/internals/utility/utils.hpp"
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -40,6 +41,63 @@ public:
         prng.read(buffer_span);
         mat[{ r_idx, c_idx }] = frodoPIR_utils::from_le_bytes<zq_t>(buffer_span);
       }
+    }
+
+    return mat;
+  }
+
+  // Given a byte serialized database s.t. it has `db_entry_count` -number of rows and each row contains `db_entry_byte_len` -bytes
+  // entry, this routines parses database into a matrix s.t. each element of matrix has `mat_element_bitlen` significant bits.
+  //
+  // Note, 0 < `mat_element_bitlen` < 32.
+  // Collects inspiration from https://github.com/brave-experiments/frodo-pir/blob/15573960/src/db.rs#L229-L254.
+  template<size_t db_entry_count, size_t db_entry_byte_len, size_t mat_element_bitlen>
+    requires((rows == db_entry_count) &&
+             (cols ==
+              []() {
+                const size_t db_entry_bit_len = db_entry_byte_len * std::numeric_limits<uint8_t>::digits;
+                const size_t required_num_cols = (db_entry_bit_len + (mat_element_bitlen - 1)) / mat_element_bitlen;
+
+                return required_num_cols;
+              }()) &&
+             ((0 < mat_element_bitlen) && (mat_element_bitlen < std::numeric_limits<zq_t>::digits)))
+  static forceinline matrix_t parse_db_bytes(std::span<const uint8_t, db_entry_count * db_entry_byte_len> bytes)
+  {
+    constexpr auto mat_element_mask = (1ul << mat_element_bitlen) - 1ul;
+
+    matrix_t mat{};
+    size_t mat_lin_idx = 0;
+
+    uint64_t buffer = 0;
+    auto buffer_span = std::span<uint8_t, sizeof(buffer)>(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer));
+
+    size_t buf_num_bits = 0;
+    size_t byte_off = 0;
+
+    while (byte_off < bytes.size()) {
+      const size_t remaining_num_bytes = bytes.size() - byte_off;
+
+      const size_t fillable_num_bits = std::numeric_limits<decltype(buffer)>::digits - buf_num_bits;
+      const size_t readable_num_bits = fillable_num_bits & (-std::numeric_limits<uint8_t>::digits);
+      const size_t readable_num_bytes = std::min(readable_num_bits / std::numeric_limits<uint8_t>::digits, remaining_num_bytes);
+
+      const auto read_word = frodoPIR_utils::from_le_bytes<uint64_t>(bytes.subspan(byte_off, readable_num_bytes));
+      byte_off += readable_num_bytes;
+
+      buffer |= (read_word << buf_num_bits);
+      buf_num_bits += readable_num_bits;
+
+      const size_t fillable_mat_elem_count = buf_num_bits / mat_element_bitlen;
+
+      for (size_t elem_idx = 0; elem_idx < fillable_mat_elem_count; elem_idx++) {
+        const zq_t mat_element = buffer & mat_element_mask;
+        mat[mat_lin_idx + elem_idx] = mat_element;
+
+        buffer >>= mat_element_bitlen;
+        buf_num_bits -= mat_element_bitlen;
+      }
+
+      mat_lin_idx += fillable_mat_elem_count;
     }
 
     return mat;
