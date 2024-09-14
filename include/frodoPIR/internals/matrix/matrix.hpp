@@ -14,17 +14,20 @@ namespace frodoPIR_matrix {
 // All arithmetic operations are performed modulo 2^32, for which we have native reduction.
 using zq_t = uint32_t;
 
+// Size of interval, used for sampling from uniform ternary distribution χ.
+inline constexpr size_t TERNARY_INTERVAL_SIZE = (std::numeric_limits<zq_t>::max() - 2) / 3;
+// Uniform sampled value to be rejected, if greater than sampling max, which is < uint32_t_MAX.
+inline constexpr size_t TERNARY_REJECTION_SAMPLING_MAX = TERNARY_INTERVAL_SIZE * 3;
+
 // Matrix of dimension `rows x cols`.
 template<size_t rows, size_t cols>
   requires((rows > 0) && (cols > 0))
 struct matrix_t
 {
-private:
-  std::array<zq_t, rows * cols> elements{};
-
 public:
-  // Constructor(s)
+  // Default constructor
   forceinline constexpr matrix_t() = default;
+
   // Given a `λ` -bit seed, this routine uniform random samples a matrix of dimension `rows x cols`.
   template<size_t λ>
   static forceinline constexpr matrix_t generate(std::span<const uint8_t, λ / std::numeric_limits<uint8_t>::digits> μ)
@@ -41,6 +44,20 @@ public:
         prng.read(buffer_span);
         mat[{ r_idx, c_idx }] = frodoPIR_utils::from_le_bytes<zq_t>(buffer_span);
       }
+    }
+
+    return mat;
+  }
+
+  // Given a seeded PRNG, this routine samples a column vector of size `rows x 1`,
+  // by rejection sampling from a uniform ternary distribution.
+  static forceinline constexpr matrix_t sample_from_uniform_ternary_distribution(prng::prng_t& prng)
+    requires(cols == 1)
+  {
+    matrix_t mat{};
+
+    for (size_t r_idx = 0; r_idx < rows; r_idx++) {
+      mat[{ r_idx, 0 }] = sample_random_ternary(prng);
     }
 
     return mat;
@@ -209,6 +226,42 @@ public:
     }
 
     return res;
+  }
+
+private:
+  std::array<zq_t, rows * cols> elements{};
+
+  // Given a seeded PRNG, this routine can be used for rejection sampling a value from a uniform ternary distribution χ.
+  // Returns sampled value ∈ {-1, 0, +1}.
+  //
+  // Collects inspiration from https://github.com/brave-experiments/frodo-pir/blob/15573960/src/utils.rs#L102-L125.
+  static forceinline constexpr zq_t sample_random_ternary(prng::prng_t& prng)
+  {
+    const auto val = [&]() {
+      zq_t val{};
+
+      std::array<uint8_t, sizeof(zq_t)> buffer{};
+      auto buffer_span = std::span(buffer);
+
+      prng.read(buffer_span);
+      val = frodoPIR_utils::from_le_bytes<zq_t>(buffer_span);
+
+      while (val > TERNARY_REJECTION_SAMPLING_MAX) {
+        prng.read(buffer_span);
+        val = frodoPIR_utils::from_le_bytes<zq_t>(buffer_span);
+      }
+
+      return val;
+    }();
+
+    zq_t ternary = 0;
+    if ((val > TERNARY_INTERVAL_SIZE) && (val < (2 * TERNARY_INTERVAL_SIZE))) {
+      ternary = 1;
+    } else {
+      ternary = std::numeric_limits<zq_t>::max();
+    }
+
+    return ternary;
   }
 };
 
