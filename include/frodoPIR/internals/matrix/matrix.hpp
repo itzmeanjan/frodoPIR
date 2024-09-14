@@ -119,6 +119,21 @@ public:
   forceinline constexpr zq_t& operator[](const size_t lin_idx) { return this->elements[lin_idx]; }
   forceinline constexpr const zq_t& operator[](const size_t lin_idx) const { return this->elements[lin_idx]; }
 
+  // Given a matrix M of dimension `rows x cols`, this routine is used for computing its transpose M' s.t.
+  // resulting matrix's dimension becomes `cols x rows`.
+  forceinline constexpr matrix_t<cols, rows> transpose() const
+  {
+    matrix_t<cols, rows> res{};
+
+    for (size_t i = 0; i < cols; i++) {
+      for (size_t j = 0; j < rows; j++) {
+        res[{ i, j }] = (*this)[{ j, i }];
+      }
+    }
+
+    return res;
+  }
+
   // Given two matrices A, B of equal dimension, this routine can be used for performing matrix addition over Zq,
   // returning a matrix of same dimension.
   forceinline constexpr matrix_t operator+(const matrix_t<rows, cols>& rhs) const
