@@ -1,6 +1,7 @@
 #pragma once
 #include "frodoPIR/internals/rng/prng.hpp"
 #include "frodoPIR/internals/utility/force_inline.hpp"
+#include "frodoPIR/internals/utility/utils.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -25,17 +26,19 @@ public:
   forceinline constexpr matrix_t() = default;
   // Given a `λ` -bit seed, this routine uniform random samples a matrix of dimension `rows x cols`.
   template<size_t λ>
-  forceinline matrix_t generate(std::span<const uint8_t, λ / std::numeric_limits<uint8_t>::digits> μ)
+  static forceinline constexpr matrix_t generate(std::span<const uint8_t, λ / std::numeric_limits<uint8_t>::digits> μ)
   {
     prng::prng_t prng(μ);
 
-    zq_t word{};
+    std::array<uint8_t, sizeof(zq_t)> buffer{};
+    auto buffer_span = std::span(buffer);
+
     matrix_t mat{};
 
     for (size_t r_idx = 0; r_idx < rows; r_idx++) {
       for (size_t c_idx = 0; c_idx < cols; c_idx++) {
-        prng.read(std::span<uint8_t, sizeof(word)>(reinterpret_cast<uint8_t*>(&word), sizeof(word)));
-        mat[{ r_idx, c_idx }] = word;
+        prng.read(buffer_span);
+        mat[{ r_idx, c_idx }] = frodoPIR_utils::from_le_bytes<zq_t>(buffer_span);
       }
     }
 
