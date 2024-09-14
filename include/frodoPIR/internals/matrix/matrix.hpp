@@ -66,38 +66,46 @@ public:
     constexpr auto mat_element_mask = (1ul << mat_element_bitlen) - 1ul;
 
     matrix_t mat{};
-    size_t mat_lin_idx = 0;
 
-    uint64_t buffer = 0;
-    auto buffer_span = std::span<uint8_t, sizeof(buffer)>(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer));
+    for (size_t r_idx = 0; r_idx < rows; r_idx++) {
+      uint64_t buffer = 0;
+      auto buffer_span = std::span<uint8_t, sizeof(buffer)>(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer));
 
-    size_t buf_num_bits = 0;
-    size_t byte_off = 0;
+      size_t buf_num_bits = 0;
+      size_t c_idx = 0;
 
-    while (byte_off < bytes.size()) {
-      const size_t remaining_num_bytes = bytes.size() - byte_off;
+      size_t byte_off = r_idx * db_entry_byte_len;
+      const size_t till_byte_off = byte_off + db_entry_byte_len;
 
-      const size_t fillable_num_bits = std::numeric_limits<decltype(buffer)>::digits - buf_num_bits;
-      const size_t readable_num_bits = fillable_num_bits & (-std::numeric_limits<uint8_t>::digits);
-      const size_t readable_num_bytes = std::min(readable_num_bits / std::numeric_limits<uint8_t>::digits, remaining_num_bytes);
+      while (byte_off < till_byte_off) {
+        const size_t remaining_num_bytes = till_byte_off - byte_off;
 
-      const auto read_word = frodoPIR_utils::from_le_bytes<uint64_t>(bytes.subspan(byte_off, readable_num_bytes));
-      byte_off += readable_num_bytes;
+        const size_t fillable_num_bits = std::numeric_limits<decltype(buffer)>::digits - buf_num_bits;
+        const size_t readable_num_bits = fillable_num_bits & (-std::numeric_limits<uint8_t>::digits);
+        const size_t readable_num_bytes = std::min(readable_num_bits / std::numeric_limits<uint8_t>::digits, remaining_num_bytes);
 
-      buffer |= (read_word << buf_num_bits);
-      buf_num_bits += readable_num_bits;
+        const auto read_word = frodoPIR_utils::from_le_bytes<uint64_t>(bytes.subspan(byte_off, readable_num_bytes));
+        byte_off += readable_num_bytes;
 
-      const size_t fillable_mat_elem_count = buf_num_bits / mat_element_bitlen;
+        buffer |= (read_word << buf_num_bits);
+        buf_num_bits += readable_num_bits;
 
-      for (size_t elem_idx = 0; elem_idx < fillable_mat_elem_count; elem_idx++) {
-        const zq_t mat_element = buffer & mat_element_mask;
-        mat[mat_lin_idx + elem_idx] = mat_element;
+        const size_t fillable_mat_elem_count = buf_num_bits / mat_element_bitlen;
 
-        buffer >>= mat_element_bitlen;
-        buf_num_bits -= mat_element_bitlen;
+        for (size_t elem_idx = 0; elem_idx < fillable_mat_elem_count; elem_idx++) {
+          const zq_t mat_element = buffer & mat_element_mask;
+          mat[{ r_idx, c_idx + elem_idx }] = mat_element;
+
+          buffer >>= mat_element_bitlen;
+          buf_num_bits -= mat_element_bitlen;
+        }
+
+        c_idx += fillable_mat_elem_count;
       }
 
-      mat_lin_idx += fillable_mat_elem_count;
+      if ((buf_num_bits > 0) && (c_idx < cols)) {
+        mat[{ r_idx, c_idx }] = buffer & mat_element_mask;
+      }
     }
 
     return mat;
