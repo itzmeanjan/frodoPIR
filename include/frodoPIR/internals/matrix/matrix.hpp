@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <limits>
 #include <span>
+#include <vector>
 
 namespace frodoPIR_matrix {
 
@@ -26,7 +27,7 @@ struct matrix_t
 {
 public:
   // Default constructor
-  forceinline constexpr matrix_t() = default;
+  forceinline constexpr matrix_t() { this->elements = std::vector<zq_t>(rows * cols, zq_t{}); };
 
   // Given a `λ` -bit seed, this routine uniform random samples a matrix of dimension `rows x cols`.
   template<size_t λ>
@@ -229,7 +230,7 @@ public:
   }
 
 private:
-  std::array<zq_t, rows * cols> elements{};
+  std::vector<zq_t> elements;
 
   // Given a seeded PRNG, this routine can be used for rejection sampling a value from a uniform ternary distribution χ.
   // Returns sampled value ∈ {-1, 0, +1}.
