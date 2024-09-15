@@ -20,6 +20,14 @@ inline constexpr size_t TERNARY_INTERVAL_SIZE = (std::numeric_limits<zq_t>::max(
 // Uniform sampled value to be rejected, if greater than sampling max, which is < uint32_t_MAX.
 inline constexpr size_t TERNARY_REJECTION_SAMPLING_MAX = TERNARY_INTERVAL_SIZE * 3;
 
+// Lambda for computing row width (i.e. number of columns) of parsed database matrix.
+constexpr auto get_required_num_columns = [](const size_t db_entry_byte_len, const size_t mat_element_bitlen) {
+  const size_t db_entry_bit_len = db_entry_byte_len * std::numeric_limits<uint8_t>::digits;
+  const size_t required_num_cols = (db_entry_bit_len + (mat_element_bitlen - 1)) / mat_element_bitlen;
+
+  return required_num_cols;
+};
+
 // Matrix of dimension `rows x cols`.
 template<size_t rows, size_t cols>
   requires((rows > 0) && (cols > 0))
@@ -70,14 +78,7 @@ public:
   // Note, 0 < `mat_element_bitlen` < 32.
   // Collects inspiration from https://github.com/brave-experiments/frodo-pir/blob/15573960/src/db.rs#L229-L254.
   template<size_t db_entry_count, size_t db_entry_byte_len, size_t mat_element_bitlen>
-    requires((rows == db_entry_count) &&
-             (cols ==
-              []() {
-                const size_t db_entry_bit_len = db_entry_byte_len * std::numeric_limits<uint8_t>::digits;
-                const size_t required_num_cols = (db_entry_bit_len + (mat_element_bitlen - 1)) / mat_element_bitlen;
-
-                return required_num_cols;
-              }()) &&
+    requires((rows == db_entry_count) && (cols == get_required_num_columns(db_entry_byte_len, mat_element_bitlen)) &&
              ((0 < mat_element_bitlen) && (mat_element_bitlen < std::numeric_limits<zq_t>::digits)))
   static forceinline matrix_t parse_db_bytes(std::span<const uint8_t, db_entry_count * db_entry_byte_len> bytes)
   {
