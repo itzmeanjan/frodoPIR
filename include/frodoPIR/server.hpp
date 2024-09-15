@@ -1,5 +1,6 @@
 #pragma once
 #include "frodoPIR/internals/matrix/matrix.hpp"
+#include "frodoPIR/internals/matrix/vector.hpp"
 #include "frodoPIR/internals/utility/force_inline.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -41,11 +42,16 @@ public:
     return { server_t(D), M };
   }
 
-private:
-  frodoPIR_matrix::matrix_t<db_entry_count,
-                            []() {
-                              const size_t db_entry_bit_len = db_entry_byte_len * std::numeric_limits<uint8_t>::digits;
-                              const size_t required_num_cols = (db_entry_bit_len + (mat_element_bitlen - 1)) / mat_element_bitlen;
+  // Given byte serialized client query, this routine can be used for responding back to it, producing byte serialized server response.
+  constexpr void respond(std::span<const uint8_t, db_entry_count * sizeof(frodoPIR_matrix::zq_t)> query_bytes,
+                         std::span<uint8_t, frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen)> response_bytes) const
+  {
+    const auto b_tilda = frodoPIR_vector::vector_t<db_entry_count>::from_le_bytes(query_bytes);
+    const auto b_tilda_transposed = b_tilda.transpose();
+    const auto c_tilda = b_tilda_transposed * this->D;
+
+    c_tilda.to_le_bytes(response_bytes);
+  }
 
 private:
   frodoPIR_matrix::matrix_t<db_entry_count, frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen)> D{};
