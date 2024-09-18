@@ -43,8 +43,9 @@ public:
   }
 
   // Given byte serialized client query, this routine can be used for responding back to it, producing byte serialized server response.
-  constexpr void respond(std::span<const uint8_t, db_entry_count * sizeof(frodoPIR_matrix::zq_t)> query_bytes,
-                         std::span<uint8_t, frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen)> response_bytes) const
+  constexpr void respond(
+    std::span<const uint8_t, db_entry_count * sizeof(frodoPIR_matrix::zq_t)> query_bytes,
+    std::span<uint8_t, frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen) * sizeof(frodoPIR_matrix::zq_t)> response_bytes) const
   {
     const auto b_tilda = frodoPIR_vector::vector_t<db_entry_count>::from_le_bytes(query_bytes);
     const auto b_tilda_transposed = b_tilda.transpose();
