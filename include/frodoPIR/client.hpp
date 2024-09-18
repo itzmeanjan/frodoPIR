@@ -5,6 +5,7 @@
 #include "frodoPIR/internals/utility/force_inline.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <unordered_map>
 #include <utility>
 
@@ -59,10 +60,11 @@ public:
                     frodoPIR_matrix::matrix_t<lwe_dimension, cols>::from_le_bytes(pub_matM_bytes));
   }
 
-  // Given a set of database row indices, this routine prepares those many queries, for enquiring their values, using FrodoPIR scheme.
-  constexpr void prepare_query(std::span<const size_t> db_indices, prng::prng_t& prng)
+  // Given a set of database row indices, this routine prepares those many queries, for enquiring their values,
+  // using FrodoPIR scheme.
+  constexpr void prepare_query(std::span<const size_t> db_row_indices, prng::prng_t& prng)
   {
-    for (const auto db_index : db_indices) {
+    for (const auto db_row_index : db_row_indices) {
       const auto s = frodoPIR_vector::vector_t<lwe_dimension>::sample_from_uniform_ternary_distribution(prng);  // secret vector
       const auto e = frodoPIR_vector::vector_t<db_entry_count>::sample_from_uniform_ternary_distribution(prng); // error vector
 
@@ -70,13 +72,35 @@ public:
       const auto b = s_transposed * this->A + e.transpose();
       const auto c = s_transposed * this->M;
 
-      this->queries[db_index] = client_query_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>{
+      this->queries[db_row_index] = client_query_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>{
         .status = query_status_t::prepared,
-        .db_index = db_index,
+        .db_index = db_row_index,
         .b = b,
         .c = c,
       };
     }
+  }
+
+  // Given a database row index, for which query has already been prepared, this routine finalizes the query,
+  // making it ready for processing at the server's end.
+  constexpr bool query(const size_t db_row_index, std::span<uint8_t, db_entry_count * sizeof(frodoPIR_matrix::zq_t)> query_bytes)
+  {
+    if (!this->queries.contains(db_row_index)) {
+      return false;
+    }
+    if (this->queries[db_row_index].status != query_status_t::prepared) {
+      return false;
+    }
+
+    constexpr auto q = static_cast<uint64_t>(std::numeric_limits<frodoPIR_matrix::zq_t>::max()) + 1;
+    constexpr auto ρ = 1ul << mat_element_bitlen;
+    constexpr auto query_indicator_value = static_cast<frodoPIR_matrix::zq_t>(q / ρ);
+
+    this->queries[db_row_index].status = query_status_t::sent;
+    this->queries[db_row_index].b[db_row_index] += query_indicator_value;
+    this->queries[db_row_index].b.to_le_bytes(query_bytes);
+
+    return true;
   }
 
 private:
