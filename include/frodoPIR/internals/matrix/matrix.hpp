@@ -130,6 +130,42 @@ public:
     return mat;
   }
 
+  // Given a row of parsed database s.t. each coefficient of input vector has at max `mat_element_bitlen` -many significant bits,
+  // this function can be used for serializing them as little-endian bytes, producing a byte array of length `db_entry_byte_len`.
+  template<size_t db_entry_byte_len, size_t mat_element_bitlen>
+    requires((rows == get_required_num_columns(db_entry_byte_len, mat_element_bitlen)) && (cols == 1))
+  constexpr void serialize_db_row(std::span<uint8_t, db_entry_byte_len> row_bytes) const
+  {
+    constexpr auto element_mask = static_cast<zq_t>((1u << mat_element_bitlen) - 1u);
+    constexpr size_t total_num_writable_bits = row_bytes * std::numeric_limits<uint8_t>::digits;
+
+    uint64_t buffer = 0;
+    auto buffer_span = std::span<uint8_t, sizeof(buffer)>(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer));
+
+    size_t buf_num_bits = 0;
+    size_t byte_off = 0;
+    size_t coeff_idx = 0;
+
+    while (coeff_idx < rows) {
+      const size_t remaining_num_bits = total_num_writable_bits - ((byte_off * std::numeric_limits<uint8_t>::digits) + buf_num_bits);
+      const auto selected_bits = static_cast<uint64_t>((*this)[coeff_idx] & element_mask);
+
+      buffer |= (selected_bits << buf_num_bits);
+      buf_num_bits += std::min(mat_element_bitlen, remaining_num_bits);
+
+      const size_t writable_num_bits = buf_num_bits & (-std::numeric_limits<uint8_t>::digits);
+      const size_t writable_num_bytes = writable_num_bits / std::numeric_limits<uint8_t>::digits;
+
+      std::copy_n(buffer_span.begin(), writable_num_bytes, row_bytes.subspan(byte_off).begin());
+
+      buffer >>= writable_num_bits;
+      buf_num_bits -= writable_num_bits;
+
+      coeff_idx++;
+      byte_off += writable_num_bytes;
+    }
+  }
+
   // Accessor, using {row_index, column_index} pair.
   forceinline constexpr zq_t& operator[](const std::pair<size_t, size_t> idx)
   {
