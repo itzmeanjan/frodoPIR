@@ -51,7 +51,8 @@ public:
   // for setting up FrodoPIR client, ready to generate queries and process server response.
   static forceinline constexpr client_t setup(
     std::span<const uint8_t, λ / std::numeric_limits<uint8_t>::digits> seed_μ,
-    std::span<const uint8_t, lwe_dimension * frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen)> pub_matM_bytes)
+    std::span<const uint8_t, lwe_dimension * frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen) * sizeof(frodoPIR_matrix::zq_t)>
+      pub_matM_bytes)
   {
     constexpr auto cols = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);
 
@@ -74,8 +75,8 @@ public:
       this->queries[db_row_index] = client_query_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>{
         .status = query_status_t::prepared,
         .db_index = db_row_index,
-        .b = b,
-        .c = c,
+        .b = b.transpose(),
+        .c = c.transpose(),
       };
     }
   }
@@ -140,7 +141,7 @@ public:
       db_matrix_row[idx] = rounded_res;
     }
 
-    db_matrix_row.serialize_db_row<db_entry_byte_len, mat_element_bitlen>(db_row_bytes);
+    db_matrix_row.template serialize_db_row<db_entry_byte_len, mat_element_bitlen>(db_row_bytes);
     this->queries.erase(db_row_index);
 
     return true;

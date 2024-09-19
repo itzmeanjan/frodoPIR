@@ -137,7 +137,7 @@ public:
   constexpr void serialize_db_row(std::span<uint8_t, db_entry_byte_len> row_bytes) const
   {
     constexpr auto element_mask = static_cast<zq_t>((1u << mat_element_bitlen) - 1u);
-    constexpr size_t total_num_writable_bits = row_bytes * std::numeric_limits<uint8_t>::digits;
+    constexpr size_t total_num_writable_bits = row_bytes.size() * std::numeric_limits<uint8_t>::digits;
 
     uint64_t buffer = 0;
     auto buffer_span = std::span<uint8_t, sizeof(buffer)>(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer));
