@@ -2,7 +2,6 @@
 #include "frodoPIR/internals/rng/prng.hpp"
 #include "frodoPIR/internals/utility/force_inline.hpp"
 #include "frodoPIR/internals/utility/utils.hpp"
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -14,6 +13,7 @@ namespace frodoPIR_matrix {
 
 // All arithmetic operations are performed modulo 2^32, for which we have native reduction.
 using zq_t = uint32_t;
+constexpr auto Q = static_cast<uint64_t>(std::numeric_limits<zq_t>::max()) + 1;
 
 // Size of interval, used for sampling from uniform ternary distribution χ.
 inline constexpr size_t TERNARY_INTERVAL_SIZE = (std::numeric_limits<zq_t>::max() - 2) / 3;
@@ -58,8 +58,7 @@ public:
     return mat;
   }
 
-  // Given a seeded PRNG, this routine samples a column vector of size `rows x 1`,
-  // by rejection sampling from a uniform ternary distribution.
+  // Given a seeded PRNG, this routine samples a column vector of size `rows x 1`, by rejection sampling from a uniform ternary distribution.
   static forceinline constexpr matrix_t sample_from_uniform_ternary_distribution(prng::prng_t& prng)
     requires(cols == 1)
   {
@@ -70,100 +69,6 @@ public:
     }
 
     return mat;
-  }
-
-  // Given a byte serialized database s.t. it has `db_entry_count` -number of rows and each row contains `db_entry_byte_len` -bytes
-  // entry, this routines parses database into a matrix s.t. each element of matrix has `mat_element_bitlen` significant bits.
-  //
-  // Note, 0 < `mat_element_bitlen` < 32.
-  // Collects inspiration from https://github.com/brave-experiments/frodo-pir/blob/15573960/src/db.rs#L229-L254.
-  template<size_t db_entry_count, size_t db_entry_byte_len, size_t mat_element_bitlen>
-    requires((rows == db_entry_count) && (cols == get_required_num_columns(db_entry_byte_len, mat_element_bitlen)) &&
-             ((0 < mat_element_bitlen) && (mat_element_bitlen < std::numeric_limits<zq_t>::digits)))
-  static forceinline matrix_t parse_db_bytes(std::span<const uint8_t, db_entry_count * db_entry_byte_len> bytes)
-  {
-    constexpr auto mat_element_mask = (1ul << mat_element_bitlen) - 1ul;
-
-    matrix_t mat{};
-
-    for (size_t r_idx = 0; r_idx < rows; r_idx++) {
-      uint64_t buffer = 0;
-      auto buffer_span = std::span<uint8_t, sizeof(buffer)>(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer));
-
-      size_t buf_num_bits = 0;
-      size_t c_idx = 0;
-
-      size_t byte_off = r_idx * db_entry_byte_len;
-      const size_t till_byte_off = byte_off + db_entry_byte_len;
-
-      while (byte_off < till_byte_off) {
-        const size_t remaining_num_bytes = till_byte_off - byte_off;
-
-        const size_t fillable_num_bits = std::numeric_limits<decltype(buffer)>::digits - buf_num_bits;
-        const size_t readable_num_bits = fillable_num_bits & (-std::numeric_limits<uint8_t>::digits);
-        const size_t readable_num_bytes = std::min(readable_num_bits / std::numeric_limits<uint8_t>::digits, remaining_num_bytes);
-
-        const auto read_word = frodoPIR_utils::from_le_bytes<uint64_t>(bytes.subspan(byte_off, readable_num_bytes));
-        byte_off += readable_num_bytes;
-
-        buffer |= (read_word << buf_num_bits);
-        buf_num_bits += readable_num_bits;
-
-        const size_t fillable_mat_elem_count = buf_num_bits / mat_element_bitlen;
-
-        for (size_t elem_idx = 0; elem_idx < fillable_mat_elem_count; elem_idx++) {
-          const zq_t mat_element = buffer & mat_element_mask;
-          mat[{ r_idx, c_idx + elem_idx }] = mat_element;
-
-          buffer >>= mat_element_bitlen;
-          buf_num_bits -= mat_element_bitlen;
-        }
-
-        c_idx += fillable_mat_elem_count;
-      }
-
-      if ((buf_num_bits > 0) && (c_idx < cols)) {
-        mat[{ r_idx, c_idx }] = buffer & mat_element_mask;
-      }
-    }
-
-    return mat;
-  }
-
-  // Given a row of parsed database s.t. each coefficient of input vector has at max `mat_element_bitlen` -many significant bits,
-  // this function can be used for serializing them as little-endian bytes, producing a byte array of length `db_entry_byte_len`.
-  template<size_t db_entry_byte_len, size_t mat_element_bitlen>
-    requires((rows == get_required_num_columns(db_entry_byte_len, mat_element_bitlen)) && (cols == 1))
-  constexpr void serialize_db_row(std::span<uint8_t, db_entry_byte_len> row_bytes) const
-  {
-    constexpr auto element_mask = static_cast<zq_t>((1u << mat_element_bitlen) - 1u);
-    constexpr size_t total_num_writable_bits = row_bytes.size() * std::numeric_limits<uint8_t>::digits;
-
-    uint64_t buffer = 0;
-    auto buffer_span = std::span<uint8_t, sizeof(buffer)>(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer));
-
-    size_t buf_num_bits = 0;
-    size_t byte_off = 0;
-    size_t coeff_idx = 0;
-
-    while (coeff_idx < rows) {
-      const size_t remaining_num_bits = total_num_writable_bits - ((byte_off * std::numeric_limits<uint8_t>::digits) + buf_num_bits);
-      const auto selected_bits = static_cast<uint64_t>((*this)[coeff_idx] & element_mask);
-
-      buffer |= (selected_bits << buf_num_bits);
-      buf_num_bits += std::min(mat_element_bitlen, remaining_num_bits);
-
-      const size_t writable_num_bits = buf_num_bits & (-std::numeric_limits<uint8_t>::digits);
-      const size_t writable_num_bytes = writable_num_bits / std::numeric_limits<uint8_t>::digits;
-
-      std::copy_n(buffer_span.begin(), writable_num_bytes, row_bytes.subspan(byte_off).begin());
-
-      buffer >>= writable_num_bits;
-      buf_num_bits -= writable_num_bits;
-
-      coeff_idx++;
-      byte_off += writable_num_bytes;
-    }
   }
 
   // Accessor, using {row_index, column_index} pair.
