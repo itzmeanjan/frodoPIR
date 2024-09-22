@@ -66,6 +66,10 @@ public:
   constexpr void prepare_query(std::span<const size_t> db_row_indices, prng::prng_t& prng)
   {
     for (const auto db_row_index : db_row_indices) {
+      if (this->queries.contains(db_row_index)) {
+        continue;
+      }
+
       const auto s = frodoPIR_vector::column_vector_t<lwe_dimension>::sample_from_uniform_ternary_distribution(prng);  // secret vector
       const auto e = frodoPIR_vector::column_vector_t<db_entry_count>::sample_from_uniform_ternary_distribution(prng); // error vector
 
