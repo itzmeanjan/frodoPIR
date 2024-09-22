@@ -4,6 +4,7 @@
 #include "frodoPIR/internals/matrix/vector.hpp"
 #include "frodoPIR/internals/rng/prng.hpp"
 #include "frodoPIR/internals/utility/force_inline.hpp"
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -84,6 +85,13 @@ public:
         .c = c,
       };
     }
+  }
+
+  // Given a database row index, this routine prepares a query, so that value at that index can be enquired, using FrodoPIR scheme.
+  constexpr void prepare_query(const size_t db_row_index, prng::prng_t& prng)
+  {
+    const std::array<size_t, 1> db_row_indices{ db_row_index };
+    this->prepare_query(db_row_indices, prng);
   }
 
   // Given a database row index, for which query has already been prepared, this routine finalizes the query,
