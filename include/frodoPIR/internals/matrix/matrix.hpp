@@ -198,9 +198,9 @@ private:
     }();
 
     zq_t ternary = 0;
-    if ((val > TERNARY_INTERVAL_SIZE) && (val < (2 * TERNARY_INTERVAL_SIZE))) {
+    if ((val > TERNARY_INTERVAL_SIZE) && (val <= (2 * TERNARY_INTERVAL_SIZE))) {
       ternary = 1;
-    } else {
+    } else if (val > (2 * TERNARY_INTERVAL_SIZE)) {
       ternary = std::numeric_limits<zq_t>::max();
     }
 
