@@ -11,7 +11,7 @@ static void
 test_matrix_operations()
 {
   constexpr size_t λ = 128;
-  constexpr size_t mat_byte_len = rows * cols * sizeof(frodoPIR_matrix::zq_t);
+  constexpr size_t mat_byte_len = frodoPIR_matrix::matrix_t<rows, cols>::get_byte_len();
 
   std::array<uint8_t, λ / std::numeric_limits<uint8_t>::digits> μ{};
   std::vector<uint8_t> matA_bytes(mat_byte_len, 0);
@@ -30,6 +30,16 @@ test_matrix_operations()
   auto A_prime_transposed = A_prime.transpose();
 
   EXPECT_EQ(A, A_prime_transposed);
+
+  auto I = frodoPIR_matrix::matrix_t<cols, cols>::identity();
+  auto AI = A * I;
+
+  EXPECT_EQ(A, AI);
+
+  auto I_prime = frodoPIR_matrix::matrix_t<rows, rows>::identity();
+  auto IA = I_prime * A;
+
+  EXPECT_EQ(A, IA);
 }
 
 TEST(FrodoPIR, MatrixOperations)
