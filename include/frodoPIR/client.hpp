@@ -1,5 +1,6 @@
 #pragma once
 #include "frodoPIR/internals/matrix/matrix.hpp"
+#include "frodoPIR/internals/matrix/serialization.hpp"
 #include "frodoPIR/internals/matrix/vector.hpp"
 #include "frodoPIR/internals/rng/prng.hpp"
 #include "frodoPIR/internals/utility/force_inline.hpp"
@@ -24,8 +25,8 @@ struct client_query_t
 {
   query_status_t status;
   size_t db_index;
-  frodoPIR_vector::vector_t<db_entry_count> b;
-  frodoPIR_vector::vector_t<frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen)> c;
+  frodoPIR_vector::row_vector_t<db_entry_count> b;
+  frodoPIR_vector::row_vector_t<frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen)> c;
 };
 
 // Frodo *P*rivate *I*nformation *R*etrieval Client
@@ -65,8 +66,8 @@ public:
   constexpr void prepare_query(std::span<const size_t> db_row_indices, prng::prng_t& prng)
   {
     for (const auto db_row_index : db_row_indices) {
-      const auto s = frodoPIR_vector::vector_t<lwe_dimension>::sample_from_uniform_ternary_distribution(prng);  // secret vector
-      const auto e = frodoPIR_vector::vector_t<db_entry_count>::sample_from_uniform_ternary_distribution(prng); // error vector
+      const auto s = frodoPIR_vector::column_vector_t<lwe_dimension>::sample_from_uniform_ternary_distribution(prng);  // secret vector
+      const auto e = frodoPIR_vector::column_vector_t<db_entry_count>::sample_from_uniform_ternary_distribution(prng); // error vector
 
       const auto s_transposed = s.transpose();
       const auto b = s_transposed * this->A + e.transpose();
@@ -75,8 +76,8 @@ public:
       this->queries[db_row_index] = client_query_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>{
         .status = query_status_t::prepared,
         .db_index = db_row_index,
-        .b = b.transpose(),
-        .c = c.transpose(),
+        .b = b,
+        .c = c,
       };
     }
   }
@@ -92,9 +93,8 @@ public:
       return false;
     }
 
-    constexpr auto q = static_cast<uint64_t>(std::numeric_limits<frodoPIR_matrix::zq_t>::max()) + 1;
-    constexpr auto ρ = 1ul << mat_element_bitlen;
-    constexpr auto query_indicator_value = static_cast<frodoPIR_matrix::zq_t>(q / ρ);
+    constexpr auto rho = 1ul << mat_element_bitlen;
+    constexpr auto query_indicator_value = static_cast<frodoPIR_matrix::zq_t>(frodoPIR_matrix::Q / rho);
 
     this->queries[db_row_index].b[db_row_index] += query_indicator_value;
     this->queries[db_row_index].b.to_le_bytes(query_bytes);
@@ -117,15 +117,14 @@ public:
       return false;
     }
 
-    constexpr auto q = static_cast<uint64_t>(std::numeric_limits<frodoPIR_matrix::zq_t>::max()) + 1;
     constexpr auto rho = 1ul << mat_element_bitlen;
-    constexpr auto rounding_factor = static_cast<frodoPIR_matrix::zq_t>(q / rho);
+    constexpr auto rounding_factor = static_cast<frodoPIR_matrix::zq_t>(frodoPIR_matrix::Q / rho);
     constexpr auto rounding_floor = rounding_factor / 2;
 
     constexpr size_t db_matrix_row_width = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);
 
-    frodoPIR_vector::vector_t<db_matrix_row_width> db_matrix_row{};
-    auto c_tilda = frodoPIR_vector::vector_t<db_matrix_row_width>::from_le_bytes(response_bytes);
+    frodoPIR_vector::row_vector_t<db_matrix_row_width> db_matrix_row{};
+    auto c_tilda = frodoPIR_vector::row_vector_t<db_matrix_row_width>::from_le_bytes(response_bytes);
 
     for (size_t idx = 0; idx < db_matrix_row_width; idx++) {
       const auto unscaled_res = c_tilda[idx] - this->queries[db_row_index].c[idx];
@@ -141,7 +140,7 @@ public:
       db_matrix_row[idx] = rounded_res;
     }
 
-    db_matrix_row.template serialize_db_row<db_entry_byte_len, mat_element_bitlen>(db_row_bytes);
+    frodoPIR_serialization::serialize_db_row<db_entry_byte_len, mat_element_bitlen>(db_matrix_row, db_row_bytes);
     this->queries.erase(db_row_index);
 
     return true;
