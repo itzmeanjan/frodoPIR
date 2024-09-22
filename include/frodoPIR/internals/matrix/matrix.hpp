@@ -71,6 +71,19 @@ public:
     return mat;
   }
 
+  // Returns an identity matrix of dimension `rows x rows`.
+  static forceinline constexpr matrix_t identity()
+    requires(rows == cols)
+  {
+    matrix_t mat{};
+
+    for (size_t idx = 0; idx < rows; idx++) {
+      mat[{ idx, idx }] = zq_t(1);
+    }
+
+    return mat;
+  }
+
   // Accessor, using {row_index, column_index} pair.
   forceinline constexpr zq_t& operator[](const std::pair<size_t, size_t> idx)
   {
