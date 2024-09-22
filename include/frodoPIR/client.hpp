@@ -4,7 +4,6 @@
 #include "frodoPIR/internals/matrix/vector.hpp"
 #include "frodoPIR/internals/rng/prng.hpp"
 #include "frodoPIR/internals/utility/force_inline.hpp"
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -67,31 +66,30 @@ public:
   constexpr void prepare_query(std::span<const size_t> db_row_indices, prng::prng_t& prng)
   {
     for (const auto db_row_index : db_row_indices) {
-      if (this->queries.contains(db_row_index)) {
-        continue;
-      }
-
-      const auto s = frodoPIR_vector::column_vector_t<lwe_dimension>::sample_from_uniform_ternary_distribution(prng);  // secret vector
-      const auto e = frodoPIR_vector::column_vector_t<db_entry_count>::sample_from_uniform_ternary_distribution(prng); // error vector
-
-      const auto s_transposed = s.transpose();
-      const auto b = s_transposed * this->A + e.transpose();
-      const auto c = s_transposed * this->M;
-
-      this->queries[db_row_index] = client_query_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>{
-        .status = query_status_t::prepared,
-        .db_index = db_row_index,
-        .b = b,
-        .c = c,
-      };
+      this->prepare_query(db_row_index, prng);
     }
   }
 
   // Given a database row index, this routine prepares a query, so that value at that index can be enquired, using FrodoPIR scheme.
   constexpr void prepare_query(const size_t db_row_index, prng::prng_t& prng)
   {
-    const std::array<size_t, 1> db_row_indices{ db_row_index };
-    this->prepare_query(db_row_indices, prng);
+    if (this->queries.contains(db_row_index)) {
+      return;
+    }
+
+    const auto s = frodoPIR_vector::column_vector_t<lwe_dimension>::sample_from_uniform_ternary_distribution(prng);  // secret vector
+    const auto e = frodoPIR_vector::column_vector_t<db_entry_count>::sample_from_uniform_ternary_distribution(prng); // error vector
+
+    const auto s_transposed = s.transpose();
+    const auto b = s_transposed * this->A + e.transpose();
+    const auto c = s_transposed * this->M;
+
+    this->queries[db_row_index] = client_query_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>{
+      .status = query_status_t::prepared,
+      .db_index = db_row_index,
+      .b = b,
+      .c = c,
+    };
   }
 
   // Given a database row index, for which query has already been prepared, this routine finalizes the query,
