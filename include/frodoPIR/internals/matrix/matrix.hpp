@@ -100,6 +100,9 @@ public:
   forceinline constexpr zq_t& operator[](const size_t lin_idx) { return this->elements[lin_idx]; }
   forceinline constexpr const zq_t& operator[](const size_t lin_idx) const { return this->elements[lin_idx]; }
 
+  // Get byte length of serialized matrix.
+  static forceinline constexpr size_t get_byte_len() { return rows * cols * sizeof(zq_t); }
+
   // Check equality of two equal dimension matrices, returning boolean result.
   forceinline constexpr bool operator==(const matrix_t& rhs) const
   {
@@ -167,9 +170,10 @@ public:
 
   // Given a matrix M of dimension `rows x cols`, this routine can be used for serializing each of its elements as
   // four little-endian bytes and concatenating them in order to compute a byte array of length `rows * cols * 4`.
-  forceinline constexpr void to_le_bytes(std::span<uint8_t, rows * cols * sizeof(zq_t)> bytes) const
+  forceinline constexpr void to_le_bytes(std::span<uint8_t, matrix_t::get_byte_len()> bytes) const
   {
-    for (size_t i = 0; i < rows * cols; i++) {
+    constexpr size_t num_elements = rows * cols;
+    for (size_t i = 0; i < num_elements; i++) {
       const size_t boff = i * sizeof(zq_t);
 
       const auto word = (*this)[i];
@@ -179,7 +183,7 @@ public:
 
   // Given a byte array of length `rows * cols * 4`, this routine can be used for deserializing it as a matrix of dimension
   // `rows x cols` s.t. each matrix element is computed by interpreting four consecutive bytes in little-endian order.
-  forceinline static matrix_t from_le_bytes(std::span<const uint8_t, rows * cols * sizeof(zq_t)> bytes)
+  forceinline static matrix_t from_le_bytes(std::span<const uint8_t, matrix_t::get_byte_len()> bytes)
   {
     constexpr size_t blen = bytes.size();
     matrix_t res{};
