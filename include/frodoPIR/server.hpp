@@ -1,5 +1,6 @@
 #pragma once
 #include "frodoPIR/internals/matrix/matrix.hpp"
+#include "frodoPIR/internals/matrix/serialization.hpp"
 #include "frodoPIR/internals/matrix/vector.hpp"
 #include "frodoPIR/internals/utility/force_inline.hpp"
 #include <cstddef>
@@ -33,10 +34,8 @@ public:
     pair<server_t, frodoPIR_matrix::matrix_t<lwe_dimension, frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen)>>
     setup(std::span<const uint8_t, λ / std::numeric_limits<uint8_t>::digits> seed_μ, std::span<const uint8_t, db_entry_count * db_entry_byte_len> db_bytes)
   {
-    constexpr auto cols = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);
-
     const auto A = frodoPIR_matrix::matrix_t<lwe_dimension, db_entry_count>::template generate<λ>(seed_μ);
-    const auto D = frodoPIR_matrix::matrix_t<db_entry_count, cols>::template parse_db_bytes<db_entry_count, db_entry_byte_len, mat_element_bitlen>(db_bytes);
+    const auto D = frodoPIR_serialization::parse_db_bytes<db_entry_count, db_entry_byte_len, mat_element_bitlen>(db_bytes);
     const auto M = A * D;
 
     return { server_t(D), M };
