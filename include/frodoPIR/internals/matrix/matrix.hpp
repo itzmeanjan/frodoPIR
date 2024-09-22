@@ -87,6 +87,20 @@ public:
   forceinline constexpr zq_t& operator[](const size_t lin_idx) { return this->elements[lin_idx]; }
   forceinline constexpr const zq_t& operator[](const size_t lin_idx) const { return this->elements[lin_idx]; }
 
+  // Check equality of two equal dimension matrices, returning boolean result.
+  forceinline constexpr bool operator==(const matrix_t& rhs) const
+  {
+    zq_t result = 0;
+
+    for (size_t r_idx = 0; r_idx < rows; r_idx++) {
+      for (size_t c_idx = 0; c_idx < cols; c_idx++) {
+        result ^= ((*this)[{ r_idx, c_idx }] ^ rhs[{ r_idx, c_idx }]);
+      }
+    }
+
+    return (result == 0);
+  }
+
   // Given a matrix M of dimension `rows x cols`, this routine is used for computing its transpose M' s.t.
   // resulting matrix's dimension becomes `cols x rows`.
   forceinline constexpr matrix_t<cols, rows> transpose() const
@@ -104,7 +118,7 @@ public:
 
   // Given two matrices A, B of equal dimension, this routine can be used for performing matrix addition over Zq,
   // returning a matrix of same dimension.
-  forceinline constexpr matrix_t operator+(const matrix_t<rows, cols>& rhs) const
+  forceinline constexpr matrix_t operator+(const matrix_t& rhs) const
   {
     matrix_t res{};
 
