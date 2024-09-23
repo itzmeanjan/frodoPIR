@@ -26,8 +26,8 @@ jobs:
         mkdir build
         pushd build
         cmake .. -DBUILD_GMOCK=OFF
-        make
-        sudo make install
+        make -j
+        sudo make -j install
         popd
         popd
         popd
