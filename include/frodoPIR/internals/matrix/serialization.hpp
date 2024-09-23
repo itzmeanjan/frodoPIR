@@ -1,6 +1,8 @@
 #pragma once
 #include "frodoPIR/internals/matrix/matrix.hpp"
 #include "frodoPIR/internals/matrix/vector.hpp"
+#include <cstdint>
+#include <limits>
 
 namespace frodoPIR_serialization {
 
@@ -36,12 +38,13 @@ parse_db_bytes(std::span<const uint8_t, db_entry_count * db_entry_byte_len> byte
       const size_t fillable_num_bits = std::numeric_limits<decltype(buffer)>::digits - buf_num_bits;
       const size_t readable_num_bits = fillable_num_bits & (-std::numeric_limits<uint8_t>::digits);
       const size_t readable_num_bytes = std::min(readable_num_bits / std::numeric_limits<uint8_t>::digits, remaining_num_bytes);
+      const size_t read_num_bits = readable_num_bytes * std::numeric_limits<uint8_t>::digits;
 
       const auto read_word = frodoPIR_utils::from_le_bytes<uint64_t>(bytes.subspan(byte_off, readable_num_bytes));
       byte_off += readable_num_bytes;
 
       buffer |= (read_word << buf_num_bits);
-      buf_num_bits += readable_num_bits;
+      buf_num_bits += read_num_bits;
 
       const size_t fillable_mat_elem_count = buf_num_bits / mat_element_bitlen;
 
