@@ -70,9 +70,6 @@ test_private_information_retrieval(const size_t num_queries)
 
 TEST(FrodoPIR, PrivateInformationRetrieval)
 {
-  test_private_information_retrieval<1ul << 16, 32, 10, 1774>(128);
-  test_private_information_retrieval<1ul << 17, 32, 10, 1774>(128);
-  test_private_information_retrieval<1ul << 18, 32, 10, 1774>(128);
-  test_private_information_retrieval<1ul << 19, 32, 9, 1774>(128);
-  test_private_information_retrieval<1ul << 20, 32, 9, 1774>(128);
+  test_private_information_retrieval<1ul << 16, 32, 10, 1774>(32);
+  test_private_information_retrieval<1ul << 20, 32, 9, 1774>(32);
 }

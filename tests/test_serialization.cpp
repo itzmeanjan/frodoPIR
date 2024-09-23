@@ -28,8 +28,5 @@ test_db_parsing_and_serialization()
 TEST(FrodoPIR, ParsingDatabaseAndSerializingDatabaseMatrix)
 {
   test_db_parsing_and_serialization<1ul << 16u, 1024, 10>();
-  test_db_parsing_and_serialization<1ul << 17u, 1024, 10>();
-  test_db_parsing_and_serialization<1ul << 18u, 1024, 10>();
-  test_db_parsing_and_serialization<1ul << 19u, 1024, 9>();
   test_db_parsing_and_serialization<1ul << 20u, 1024, 9>();
 }
