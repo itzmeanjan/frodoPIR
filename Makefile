@@ -26,6 +26,7 @@ RELEASE_ASAN_BUILD_DIR := $(ASAN_BUILD_DIR)/release
 UBSAN_BUILD_DIR := $(BUILD_DIR)/ubsan
 DEBUG_UBSAN_BUILD_DIR := $(UBSAN_BUILD_DIR)/debug
 RELEASE_UBSAN_BUILD_DIR := $(UBSAN_BUILD_DIR)/release
+BENCHMARK_BUILD_DIR := $(BUILD_DIR)/benchmark
 
 TEST_DIR := tests
 TEST_SOURCES := $(wildcard $(TEST_DIR)/*.cpp)
@@ -43,6 +44,16 @@ RELEASE_UBSAN_TEST_OBJECTS := $(addprefix $(RELEASE_UBSAN_BUILD_DIR)/, $(notdir 
 DEBUG_UBSAN_TEST_BINARY := $(DEBUG_UBSAN_BUILD_DIR)/test.out
 RELEASE_UBSAN_TEST_BINARY := $(RELEASE_UBSAN_BUILD_DIR)/test.out
 
+BENCHMARK_DIR := benches
+BENCHMARK_SOURCES := $(wildcard $(BENCHMARK_DIR)/*.cpp)
+BENCHMARK_HEADERS := $(wildcard $(BENCHMARK_DIR)/*.hpp)
+BENCHMARK_OBJECTS := $(addprefix $(BENCHMARK_BUILD_DIR)/, $(notdir $(patsubst %.cpp,%.o,$(BENCHMARK_SOURCES))))
+BENCHMARK_LINK_FLAGS := -lbenchmark -lbenchmark_main -lpthread
+BENCHMARK_BINARY := $(BENCHMARK_BUILD_DIR)/bench.out
+PERF_LINK_FLAGS := -lbenchmark -lbenchmark_main -lpfm -lpthread
+PERF_BINARY := $(BENCHMARK_BUILD_DIR)/perf.out
+BENCHMARK_OUT_FILE := bench_result_on_$(shell uname -s)_$(shell uname -r)_$(shell uname -m)_with_$(CXX)_$(shell $(CXX) -dumpversion).json
+
 all: test
 
 $(DEBUG_ASAN_BUILD_DIR):
@@ -58,6 +69,9 @@ $(RELEASE_UBSAN_BUILD_DIR):
 	mkdir -p $@
 
 $(TEST_BUILD_DIR):
+	mkdir -p $@
+
+$(BENCHMARK_BUILD_DIR):
 	mkdir -p $@
 
 $(GTEST_PARALLEL):
@@ -111,10 +125,27 @@ debug_ubsan_test: $(DEBUG_UBSAN_TEST_BINARY) $(GTEST_PARALLEL)
 release_ubsan_test: $(RELEASE_UBSAN_TEST_BINARY) $(GTEST_PARALLEL)
 	$(GTEST_PARALLEL) $< --print_test_times --serialize_test_cases
 
+$(BENCHMARK_BUILD_DIR)/%.o: $(BENCHMARK_DIR)/%.cpp $(BENCHMARK_BUILD_DIR) $(SHA3_INC_DIR)
+	$(CXX) $(CXX_DEFS) $(CXX_FLAGS) $(WARN_FLAGS) $(RELEASE_FLAGS) $(I_FLAGS) $(DEP_IFLAGS) -c $< -o $@
+
+$(BENCHMARK_BINARY): $(BENCHMARK_OBJECTS)
+	$(CXX) $(RELEASE_FLAGS) $(LINK_OPT_FLAGS) $^ $(BENCHMARK_LINK_FLAGS) -o $@
+
+benchmark: $(BENCHMARK_BINARY)
+	# Must *not* build google-benchmark with libPFM
+	./$< --benchmark_time_unit=s --benchmark_min_warmup_time=10 --benchmark_enable_random_interleaving=true --benchmark_repetitions=16 --benchmark_min_time=60s --benchmark_display_aggregates_only=true --benchmark_report_aggregates_only=true --benchmark_counters_tabular=true --benchmark_out_format=json --benchmark_out=$(BENCHMARK_OUT_FILE)
+
+$(PERF_BINARY): $(BENCHMARK_OBJECTS)
+	$(CXX) $(RELEASE_FLAGS) $(LINK_OPT_FLAGS) $^ $(PERF_LINK_FLAGS) -o $@
+
+perf: $(PERF_BINARY)
+	# Must build google-benchmark with libPFM, follow https://gist.github.com/itzmeanjan/05dc3e946f635d00c5e0b21aae6203a7
+	./$< --benchmark_time_unit=s --benchmark_min_warmup_time=10 --benchmark_enable_random_interleaving=true --benchmark_repetitions=16 --benchmark_min_time=60s --benchmark_display_aggregates_only=true --benchmark_report_aggregates_only=true --benchmark_counters_tabular=true --benchmark_perf_counters=CYCLES --benchmark_out_format=json --benchmark_out=$(BENCHMARK_OUT_FILE)
+
 .PHONY: format clean
 
 clean:
 	rm -rf $(BUILD_DIR)
 
-format: $(FrodoPIR_SOURCES) $(TEST_SOURCES) $(TEST_HEADERS)
+format: $(FrodoPIR_SOURCES) $(TEST_SOURCES) $(TEST_HEADERS) $(BENCHMARK_SOURCES) $(BENCHMARK_HEADERS)
 	clang-format -i $^
