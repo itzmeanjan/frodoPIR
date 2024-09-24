@@ -53,7 +53,8 @@ test_private_information_retrieval(const size_t num_queries)
       return buffer % db_entry_count;
     }();
 
-    client.prepare_query(db_row_index, prng);
+    const auto is_query_preprocessed = client.prepare_query(db_row_index, prng);
+    EXPECT_TRUE(is_query_preprocessed);
 
     const auto is_query_ready = client.query(db_row_index, query_bytes_span);
     EXPECT_TRUE(is_query_ready);
