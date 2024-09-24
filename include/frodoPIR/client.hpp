@@ -9,6 +9,7 @@
 #include <limits>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace frodoPIR_client {
 
@@ -61,20 +62,30 @@ public:
                     frodoPIR_matrix::matrix_t<lwe_dimension, cols>::from_le_bytes(pub_matM_bytes));
   }
 
-  // Given a set of database row indices, this routine prepares those many queries, for enquiring their values,
-  // using FrodoPIR scheme.
-  constexpr void prepare_query(std::span<const size_t> db_row_indices, prng::prng_t& prng)
+  // Given `n` -many database row indices, this routine prepares `n` -many queries, for enquiring their values,
+  // using FrodoPIR scheme. This function returns a boolean vector of length `n` s.t. each boolean value denotes
+  // status of query preparation, for corresponding database row index, as appearing in `db_row_indices`, in order.
+  [[nodiscard("Must use status of query preparation for DB row indices")]] constexpr std::vector<bool> prepare_query(std::span<const size_t> db_row_indices,
+                                                                                                                     prng::prng_t& prng)
   {
+    std::vector<bool> query_prep_status;
+    query_prep_status.reserve(db_row_indices.size());
+
     for (const auto db_row_index : db_row_indices) {
-      this->prepare_query(db_row_index, prng);
+      query_prep_status.push_back(this->prepare_query(db_row_index, prng));
     }
+
+    return query_prep_status;
   }
 
   // Given a database row index, this routine prepares a query, so that value at that index can be enquired, using FrodoPIR scheme.
-  constexpr void prepare_query(const size_t db_row_index, prng::prng_t& prng)
+  // This routine returns boolean truth value if query for requested database row index is prepared - ready to be used, while also
+  // placing an entry of query for corresponding database row index in the internal cache. But in case, query for corresponding database
+  // row index has already been prepared, it returns false, denoting that no change has been done to the internal cache.
+  [[nodiscard("Must use status of query preparation")]] constexpr bool prepare_query(const size_t db_row_index, prng::prng_t& prng)
   {
     if (this->queries.contains(db_row_index)) {
-      return;
+      return false;
     }
 
     const auto s = frodoPIR_vector::column_vector_t<lwe_dimension>::sample_from_uniform_ternary_distribution(prng);  // secret vector
@@ -90,11 +101,18 @@ public:
       .b = b,
       .c = c,
     };
+
+    return true;
   }
 
-  // Given a database row index, for which query has already been prepared, this routine finalizes the query,
-  // making it ready for processing at the server's end.
-  constexpr bool query(const size_t db_row_index, std::span<uint8_t, db_entry_count * sizeof(frodoPIR_matrix::zq_t)> query_bytes)
+  // Given a database row index, for which query has already been prepared, this routine finalizes the query, making it ready
+  // for processing at the server's end. This routine returns boolean truth value if byte serialized query is ready to be sent to server.
+  // Or else it returns false, denoting either of
+  //
+  // (a) Query is not yet prepared for requested database row index.
+  // (b) Query is already sent to server for requested database row index.
+  [[nodiscard("Must use status of query finalization")]] constexpr bool query(const size_t db_row_index,
+                                                                              std::span<uint8_t, db_entry_count * sizeof(frodoPIR_matrix::zq_t)> query_bytes)
   {
     if (!this->queries.contains(db_row_index)) {
       return false;
@@ -115,7 +133,12 @@ public:
 
   // Given a database row index, for which query has already been sent to server and we are awaiting response,
   // this routine can be used for processing server response, returning byte serialized content of queried row.
-  constexpr bool process_response(
+  // This function returns boolean truth value, if response is successfully decoded, while also removing entry
+  // of corresponding client query from internal cache. Or it may return false, denoting either of
+  //
+  // (a) Query is not yet prepared for requested database row index.
+  // (b) Query has not yet been sent to server, so can't process response for it.
+  [[nodiscard("Must use status of response decoding")]] constexpr bool process_response(
     const size_t db_row_index,
     std::span<const uint8_t, frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen) * sizeof(frodoPIR_matrix::zq_t)> response_bytes,
     std::span<uint8_t, db_entry_byte_len> db_row_bytes)
