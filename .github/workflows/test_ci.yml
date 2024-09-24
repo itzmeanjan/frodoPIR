@@ -1,4 +1,4 @@
-name: Test Frodo Private Information Retrieval Scheme
+name: Test FrodoPIR Scheme
 
 on:
   push:
