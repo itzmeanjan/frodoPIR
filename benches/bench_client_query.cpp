@@ -45,15 +45,15 @@ bench_client_query(benchmark::State& state)
     return buffer % db_entry_count;
   }();
 
-  client.prepare_query(rand_db_row_index, prng);
-
+  auto is_query_preprocessed = client.prepare_query(rand_db_row_index, prng);
   bool is_query_ready = true;
+
   for (auto _ : state) {
     is_query_ready &= client.query(rand_db_row_index, query_bytes_span);
 
+    benchmark::DoNotOptimize(is_query_ready);
     benchmark::DoNotOptimize(client);
     benchmark::DoNotOptimize(query_bytes_span);
-    benchmark::DoNotOptimize(is_query_ready);
     benchmark::ClobberMemory();
 
     state.PauseTiming();
@@ -62,9 +62,12 @@ bench_client_query(benchmark::State& state)
     rand_db_row_index ^= (rand_db_row_index << 1) ^ 1ul;
     rand_db_row_index %= db_entry_count;
 
-    client.prepare_query(rand_db_row_index, prng);
+    is_query_preprocessed &= client.prepare_query(rand_db_row_index, prng);
     state.ResumeTiming();
   }
+
+  assert(is_query_preprocessed);
+  assert(is_query_ready);
 
   state.SetItemsProcessed(state.iterations());
 }
