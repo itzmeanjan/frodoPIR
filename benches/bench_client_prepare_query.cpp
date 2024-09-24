@@ -11,14 +11,20 @@ bench_client_prepare_query(benchmark::State& state)
   constexpr size_t db_byte_len = db_entry_count * db_entry_byte_len;
   constexpr size_t parsed_db_column_count = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);
   constexpr size_t pub_matM_byte_len = frodoPIR_matrix::matrix_t<lwe_dimension, parsed_db_column_count>::get_byte_len();
+  constexpr size_t query_byte_len = frodoPIR_vector::row_vector_t<db_entry_count>::get_byte_len();
+  constexpr size_t response_byte_len = frodoPIR_vector::row_vector_t<parsed_db_column_count>::get_byte_len();
 
   std::array<uint8_t, λ / std::numeric_limits<uint8_t>::digits> seed_μ{};
   std::vector<uint8_t> db_bytes(db_byte_len, 0);
   std::vector<uint8_t> pub_matM_bytes(pub_matM_byte_len, 0);
+  std::vector<uint8_t> query_bytes(query_byte_len, 0);
+  std::vector<uint8_t> response_bytes(response_byte_len, 0);
 
   auto seed_μ_span = std::span(seed_μ);
   auto db_bytes_span = std::span<uint8_t, db_byte_len>(db_bytes);
   auto pub_matM_bytes_span = std::span<uint8_t, pub_matM_byte_len>(pub_matM_bytes);
+  auto query_bytes_span = std::span<uint8_t, query_byte_len>(query_bytes);
+  auto response_bytes_span = std::span<uint8_t, response_byte_len>(response_bytes);
 
   prng::prng_t prng{};
 
@@ -39,17 +45,30 @@ bench_client_prepare_query(benchmark::State& state)
     return buffer % db_entry_count;
   }();
 
-  for (auto _ : state) {
-    client.prepare_query(rand_db_row_index, prng);
+  bool is_query_preprocessed = true;
+  bool is_query_ready = true;
 
+  for (auto _ : state) {
+    is_query_preprocessed &= client.prepare_query(rand_db_row_index, prng);
+
+    benchmark::DoNotOptimize(is_query_preprocessed);
     benchmark::DoNotOptimize(client);
     benchmark::DoNotOptimize(rand_db_row_index);
     benchmark::DoNotOptimize(prng);
     benchmark::ClobberMemory();
 
+    state.PauseTiming();
+    is_query_ready &= client.query(rand_db_row_index, query_bytes_span);
+    server.respond(query_bytes_span, response_bytes_span);
+
     rand_db_row_index ^= (rand_db_row_index << 1) ^ 1ul;
     rand_db_row_index %= db_entry_count;
+
+    state.ResumeTiming();
   }
+
+  assert(is_query_preprocessed);
+  assert(is_query_ready);
 
   state.SetItemsProcessed(state.iterations());
 }
