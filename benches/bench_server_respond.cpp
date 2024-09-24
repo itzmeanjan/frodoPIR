@@ -45,7 +45,8 @@ bench_server_respond(benchmark::State& state)
     return buffer % db_entry_count;
   }();
 
-  client.prepare_query(rand_db_row_index, prng);
+  const auto is_query_preprocessed = client.prepare_query(rand_db_row_index, prng);
+  assert(is_query_preprocessed);
 
   const auto is_query_ready = client.query(rand_db_row_index, query_bytes_span);
   assert(is_query_ready);
