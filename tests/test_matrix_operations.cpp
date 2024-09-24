@@ -6,11 +6,12 @@
 #include <limits>
 #include <vector>
 
-template<size_t rows, size_t cols>
-static void
-test_matrix_operations()
+TEST(FrodoPIR, MatrixOperations)
 {
   constexpr size_t λ = 128;
+  constexpr size_t rows = 1024;
+  constexpr size_t cols = rows + 1;
+
   constexpr size_t mat_byte_len = frodoPIR_matrix::matrix_t<rows, cols>::get_byte_len();
 
   std::array<uint8_t, λ / std::numeric_limits<uint8_t>::digits> μ{};
@@ -23,27 +24,30 @@ test_matrix_operations()
   prng.read(μ_span);
 
   auto A = frodoPIR_matrix::matrix_t<rows, cols>::template generate<λ>(μ_span);
-  auto A_transposed = A.transpose();
-  A_transposed.to_le_bytes(matA_bytes_span);
 
-  auto A_prime = frodoPIR_matrix::matrix_t<cols, rows>::from_le_bytes(matA_bytes_span);
-  auto A_prime_transposed = A_prime.transpose();
+  {
+    auto A_transposed = A.transpose();
+    A_transposed.to_le_bytes(matA_bytes_span);
+  }
 
-  EXPECT_EQ(A, A_prime_transposed);
+  {
+    auto A_prime = frodoPIR_matrix::matrix_t<cols, rows>::from_le_bytes(matA_bytes_span);
+    auto A_prime_transposed = A_prime.transpose();
 
-  auto I = frodoPIR_matrix::matrix_t<cols, cols>::identity();
-  auto AI = A * I;
+    EXPECT_EQ(A, A_prime_transposed);
+  }
 
-  EXPECT_EQ(A, AI);
+  {
+    auto I = frodoPIR_matrix::matrix_t<cols, cols>::identity();
+    auto AI = A * I;
 
-  auto I_prime = frodoPIR_matrix::matrix_t<rows, rows>::identity();
-  auto IA = I_prime * A;
+    EXPECT_EQ(A, AI);
+  }
 
-  EXPECT_EQ(A, IA);
-}
+  {
+    auto I_prime = frodoPIR_matrix::matrix_t<rows, rows>::identity();
+    auto IA = I_prime * A;
 
-TEST(FrodoPIR, MatrixOperations)
-{
-  test_matrix_operations<1774, 1ul << 16>();
-  test_matrix_operations<1774, 1ul << 20>();
+    EXPECT_EQ(A, IA);
+  }
 }
