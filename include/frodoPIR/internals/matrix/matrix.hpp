@@ -34,8 +34,16 @@ template<size_t rows, size_t cols>
 struct matrix_t
 {
 public:
-  // Default constructor
+  // Constructor(s)
   forceinline constexpr matrix_t() { this->elements = std::vector<zq_t>(rows * cols, zq_t{}); };
+  explicit matrix_t(std::vector<zq_t> elements)
+    : elements(std::move(elements))
+  {
+  }
+  matrix_t(const matrix_t&) = default;
+  matrix_t(matrix_t&&) = default;
+  matrix_t& operator=(const matrix_t&) = default;
+  matrix_t& operator=(matrix_t&&) = default;
 
   // Given a `λ` -bit seed, this routine uniform random samples a matrix of dimension `rows x cols`.
   template<size_t λ>
