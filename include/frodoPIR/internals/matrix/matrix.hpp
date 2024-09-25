@@ -49,17 +49,20 @@ public:
   template<size_t λ>
   static forceinline constexpr matrix_t generate(std::span<const uint8_t, λ / std::numeric_limits<uint8_t>::digits> μ)
   {
+    constexpr size_t row_byte_len = cols * sizeof(zq_t);
+
+    std::vector<uint8_t> buffer(row_byte_len, 0);
+    auto buffer_span = std::span<uint8_t, row_byte_len>(buffer);
+
     prng::prng_t prng(μ);
-
-    std::array<uint8_t, sizeof(zq_t)> buffer{};
-    auto buffer_span = std::span(buffer);
-
     matrix_t mat{};
 
     for (size_t r_idx = 0; r_idx < rows; r_idx++) {
+      prng.read(buffer_span);
+
       for (size_t c_idx = 0; c_idx < cols; c_idx++) {
-        prng.read(buffer_span);
-        mat[{ r_idx, c_idx }] = frodoPIR_utils::from_le_bytes<zq_t>(buffer_span);
+        const size_t buffer_offset = c_idx * sizeof(zq_t);
+        mat[{ r_idx, c_idx }] = frodoPIR_utils::from_le_bytes<zq_t>(buffer_span.subspan(buffer_offset, sizeof(zq_t)));
       }
     }
 
