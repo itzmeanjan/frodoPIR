@@ -19,12 +19,14 @@ bench_client_prepare_query(benchmark::State& state)
   std::vector<uint8_t> pub_matM_bytes(pub_matM_byte_len, 0);
   std::vector<uint8_t> query_bytes(query_byte_len, 0);
   std::vector<uint8_t> response_bytes(response_byte_len, 0);
+  std::vector<uint8_t> db_row_bytes(db_entry_byte_len, 0);
 
   auto seed_μ_span = std::span(seed_μ);
   auto db_bytes_span = std::span<uint8_t, db_byte_len>(db_bytes);
   auto pub_matM_bytes_span = std::span<uint8_t, pub_matM_byte_len>(pub_matM_bytes);
   auto query_bytes_span = std::span<uint8_t, query_byte_len>(query_bytes);
   auto response_bytes_span = std::span<uint8_t, response_byte_len>(response_bytes);
+  auto db_row_bytes_span = std::span<uint8_t, db_entry_byte_len>(db_row_bytes);
 
   prng::prng_t prng{};
 
@@ -47,6 +49,7 @@ bench_client_prepare_query(benchmark::State& state)
 
   bool is_query_preprocessed = true;
   bool is_query_ready = true;
+  bool is_response_decoded = true;
 
   for (auto _ : state) {
     is_query_preprocessed &= client.prepare_query(rand_db_row_index, prng);
@@ -60,15 +63,16 @@ bench_client_prepare_query(benchmark::State& state)
     state.PauseTiming();
     is_query_ready &= client.query(rand_db_row_index, query_bytes_span);
     server.respond(query_bytes_span, response_bytes_span);
+    is_response_decoded &= client.process_response(rand_db_row_index, response_bytes_span, db_row_bytes_span);
 
     rand_db_row_index ^= (rand_db_row_index << 1) ^ 1ul;
     rand_db_row_index %= db_entry_count;
-
     state.ResumeTiming();
   }
 
   assert(is_query_preprocessed);
   assert(is_query_ready);
+  assert(is_response_decoded);
 
   state.SetItemsProcessed(state.iterations());
 }
