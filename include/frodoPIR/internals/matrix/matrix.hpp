@@ -5,6 +5,7 @@
 #include "shake128.hpp"
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -50,6 +51,7 @@ public:
 
   // Given a `λ` -bit seed, this routine uniform random samples a matrix of dimension `rows x cols`.
   template<size_t λ>
+    requires(std::endian::native == std::endian::little)
   static forceinline matrix_t generate(std::span<const uint8_t, λ / std::numeric_limits<uint8_t>::digits> μ)
   {
     constexpr size_t row_byte_len = cols * sizeof(zq_t);
@@ -214,34 +216,22 @@ public:
 
   // Given a matrix M of dimension `rows x cols`, this routine can be used for serializing each of its elements as
   // four little-endian bytes and concatenating them in order to compute a byte array of length `rows * cols * 4`.
-  forceinline constexpr void to_le_bytes(std::span<uint8_t, matrix_t::get_byte_len()> bytes) const
+  forceinline void to_le_bytes(std::span<uint8_t, matrix_t::get_byte_len()> bytes) const
+    requires(std::endian::native == std::endian::little)
   {
-    constexpr size_t num_elements = rows * cols;
-    for (size_t i = 0; i < num_elements; i++) {
-      const size_t boff = i * sizeof(zq_t);
-
-      const auto word = (*this)[i];
-      frodoPIR_utils::to_le_bytes(word, bytes.subspan(boff, sizeof(word)));
-    }
+    auto elements_ptr = reinterpret_cast<const uint8_t*>(this->elements.data());
+    memcpy(bytes.data(), elements_ptr, bytes.size());
   }
 
   // Given a byte array of length `rows * cols * 4`, this routine can be used for deserializing it as a matrix of dimension
   // `rows x cols` s.t. each matrix element is computed by interpreting four consecutive bytes in little-endian order.
   forceinline static matrix_t from_le_bytes(std::span<const uint8_t, matrix_t::get_byte_len()> bytes)
+    requires(std::endian::native == std::endian::little)
   {
-    constexpr size_t blen = bytes.size();
     matrix_t res{};
 
-    size_t boff = 0;
-    size_t lin_idx = 0;
-
-    while (boff < blen) {
-      const auto word = frodoPIR_utils::from_le_bytes<zq_t>(bytes.subspan(boff, sizeof(zq_t)));
-      res[lin_idx] = word;
-
-      boff += sizeof(word);
-      lin_idx += 1;
-    }
+    auto elements_ptr = reinterpret_cast<uint8_t*>(res.elements.data());
+    memcpy(elements_ptr, bytes.data(), bytes.size());
 
     return res;
   }
