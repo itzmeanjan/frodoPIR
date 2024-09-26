@@ -11,6 +11,8 @@
 #include <cstring>
 #include <limits>
 #include <span>
+#include <thread>
+#include <utility>
 #include <vector>
 
 namespace frodoPIR_matrix {
@@ -199,16 +201,27 @@ public:
   // https://lemire.me/blog/2024/06/13/rolling-your-own-fast-matrix-multiplication-loop-order-and-vectorization.
   template<size_t rhs_rows, size_t rhs_cols>
     requires((cols == rhs_rows))
-  forceinline constexpr matrix_t<rows, rhs_cols> operator*(const matrix_t<rhs_rows, rhs_cols>& rhs) const
+  forceinline matrix_t<rows, rhs_cols> operator*(const matrix_t<rhs_rows, rhs_cols>& rhs) const
   {
     matrix_t<rows, rhs_cols> res{};
 
+    std::vector<std::thread> threads;
+    threads.reserve(rows);
+
     for (size_t r_idx = 0; r_idx < rows; r_idx++) {
-      for (size_t k = 0; k < cols; k++) {
-        for (size_t c_idx = 0; c_idx < rhs_cols; c_idx++) {
-          res[{ r_idx, c_idx }] += (*this)[{ r_idx, k }] * rhs[{ k, c_idx }];
+      auto thread = std::thread([=, this, &rhs, &res]() {
+        for (size_t k = 0; k < cols; k++) {
+          for (size_t c_idx = 0; c_idx < rhs_cols; c_idx++) {
+            res[{ r_idx, c_idx }] += (*this)[{ r_idx, k }] * rhs[{ k, c_idx }];
+          }
         }
-      }
+      });
+
+      threads.push_back(std::move(thread));
+    }
+
+    for (size_t r_idx = 0; r_idx < rows; r_idx++) {
+      threads[r_idx].join();
     }
 
     return res;
