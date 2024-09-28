@@ -197,22 +197,37 @@ public:
   // Given two matrices A ( of dimension rows x cols ) and B ( of dimension rhs_rows x rhs_cols ) s.t. cols == rhs_rows,
   // this routine can be used for multiplying them over Zq, resulting into another matrix (C) of dimension rows x rhs_cols.
   //
-  // Following homebrewed matrix multiplication technique from
-  // https://lemire.me/blog/2024/06/13/rolling-your-own-fast-matrix-multiplication-loop-order-and-vectorization.
+  // Following home-brewed matrix multiplication technique from
+  // https://lemire.me/blog/2024/06/13/rolling-your-own-fast-matrix-multiplication-loop-order-and-vectorization, while also
+  // parallelizing the outer loop using std::thread API.
   template<size_t rhs_rows, size_t rhs_cols>
     requires((cols == rhs_rows))
   forceinline matrix_t<rows, rhs_cols> operator*(const matrix_t<rhs_rows, rhs_cols>& rhs) const
   {
     matrix_t<rows, rhs_cols> res{};
 
-    std::vector<std::thread> threads;
-    threads.reserve(rows);
+    constexpr size_t min_num_threads = 1;
+    const size_t hw_hinted_max_num_threads = std::thread::hardware_concurrency();
+    const size_t spawnable_num_threads = std::max(min_num_threads, hw_hinted_max_num_threads);
 
-    for (size_t r_idx = 0; r_idx < rows; r_idx++) {
+    const size_t num_rows_per_thread = rows / spawnable_num_threads;
+    const size_t num_rows_distributed = num_rows_per_thread * spawnable_num_threads;
+    const size_t remaining_num_rows = rows - num_rows_distributed;
+
+    std::vector<std::thread> threads;
+    threads.reserve(spawnable_num_threads);
+
+    // Let's first spawn N -number of threads s.t. each of them will have equal many rows to work on.
+    for (size_t t_idx = 0; t_idx < spawnable_num_threads; t_idx++) {
+      const size_t r_idx_begin = t_idx * num_rows_per_thread;
+      const size_t r_idx_end = r_idx_begin + num_rows_per_thread;
+
       auto thread = std::thread([=, this, &rhs, &res]() {
-        for (size_t k = 0; k < cols; k++) {
-          for (size_t c_idx = 0; c_idx < rhs_cols; c_idx++) {
-            res[{ r_idx, c_idx }] += (*this)[{ r_idx, k }] * rhs[{ k, c_idx }];
+        for (size_t r_idx = r_idx_begin; r_idx < r_idx_end; r_idx++) {
+          for (size_t k = 0; k < cols; k++) {
+            for (size_t c_idx = 0; c_idx < rhs_cols; c_idx++) {
+              res[{ r_idx, c_idx }] += (*this)[{ r_idx, k }] * rhs[{ k, c_idx }];
+            }
           }
         }
       });
@@ -220,9 +235,22 @@ public:
       threads.push_back(std::move(thread));
     }
 
-    for (size_t r_idx = 0; r_idx < rows; r_idx++) {
-      threads[r_idx].join();
+    // Finally, remaining rows, if any, are processed by "this" parent thread.
+    if (remaining_num_rows > 0) {
+      const size_t final_thread_r_idx_begin = num_rows_distributed;
+      const size_t final_thread_r_idx_end = final_thread_r_idx_begin + remaining_num_rows;
+
+      for (size_t r_idx = final_thread_r_idx_begin; r_idx < final_thread_r_idx_end; r_idx++) {
+        for (size_t k = 0; k < cols; k++) {
+          for (size_t c_idx = 0; c_idx < rhs_cols; c_idx++) {
+            res[{ r_idx, c_idx }] += (*this)[{ r_idx, k }] * rhs[{ k, c_idx }];
+          }
+        }
+      }
     }
+
+    // Now we wait until all of spawned threads finish their job.
+    std::ranges::for_each(threads, [](auto& handle) { handle.join(); });
 
     return res;
   }
