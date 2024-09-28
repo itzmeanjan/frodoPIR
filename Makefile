@@ -5,10 +5,9 @@ WARN_FLAGS := -Wall -Wextra -Wpedantic
 DEBUG_FLAGS := -O1 -g
 RELEASE_FLAGS := -O3 -march=native
 LINK_OPT_FLAGS := -flto
-ASAN_FLAGS := -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize=address # From https://clang.llvm.org/docs/AddressSanitizer.html and https://clang.llvm.org/docs/LeakSanitizer.html
+ASAN_FLAGS := -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize=address # From https://clang.llvm.org/docs/AddressSanitizer.html
 DEBUG_ASAN_FLAGS := $(DEBUG_FLAGS) $(ASAN_FLAGS)
 RELEASE_ASAN_FLAGS := -g $(RELEASE_FLAGS) $(ASAN_FLAGS)
-ASAN_RUNTIME_FLAGS := ASAN_OPTIONS=detect_leaks=1
 UBSAN_FLAGS := -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize=undefined # From https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
 DEBUG_UBSAN_FLAGS := $(DEBUG_FLAGS) $(UBSAN_FLAGS)
 RELEASE_UBSAN_FLAGS := -g $(RELEASE_FLAGS) $(UBSAN_FLAGS)
@@ -115,10 +114,10 @@ test: $(TEST_BINARY) $(GTEST_PARALLEL)
 	$(GTEST_PARALLEL) $< --print_test_times --serialize_test_cases
 
 debug_asan_test: $(DEBUG_ASAN_TEST_BINARY) $(GTEST_PARALLEL)
-	$(ASAN_RUNTIME_FLAGS) $(GTEST_PARALLEL) $< --print_test_times --serialize_test_cases
+	$(GTEST_PARALLEL) $< --print_test_times --serialize_test_cases
 
 release_asan_test: $(RELEASE_ASAN_TEST_BINARY) $(GTEST_PARALLEL)
-	$(ASAN_RUNTIME_FLAGS) $(GTEST_PARALLEL) $< --print_test_times --serialize_test_cases
+	$(GTEST_PARALLEL) $< --print_test_times --serialize_test_cases
 
 debug_ubsan_test: $(DEBUG_UBSAN_TEST_BINARY) $(GTEST_PARALLEL)
 	$(GTEST_PARALLEL) $< --print_test_times --serialize_test_cases
