@@ -8,6 +8,7 @@ LINK_OPT_FLAGS := -flto
 ASAN_FLAGS := -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize=address # From https://clang.llvm.org/docs/AddressSanitizer.html and https://clang.llvm.org/docs/LeakSanitizer.html
 DEBUG_ASAN_FLAGS := $(DEBUG_FLAGS) $(ASAN_FLAGS)
 RELEASE_ASAN_FLAGS := -g $(RELEASE_FLAGS) $(ASAN_FLAGS)
+ASAN_RUNTIME_FLAGS := ASAN_OPTIONS=detect_leaks=1
 UBSAN_FLAGS := -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize=undefined # From https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
 DEBUG_UBSAN_FLAGS := $(DEBUG_FLAGS) $(UBSAN_FLAGS)
 RELEASE_UBSAN_FLAGS := -g $(RELEASE_FLAGS) $(UBSAN_FLAGS)
@@ -114,10 +115,10 @@ test: $(TEST_BINARY) $(GTEST_PARALLEL)
 	$(GTEST_PARALLEL) $< --print_test_times --serialize_test_cases
 
 debug_asan_test: $(DEBUG_ASAN_TEST_BINARY) $(GTEST_PARALLEL)
-	ASAN_OPTIONS=detect_leaks=1 $(GTEST_PARALLEL) $< --print_test_times --serialize_test_cases
+	$(ASAN_RUNTIME_FLAGS) $(GTEST_PARALLEL) $< --print_test_times --serialize_test_cases
 
 release_asan_test: $(RELEASE_ASAN_TEST_BINARY) $(GTEST_PARALLEL)
-	ASAN_OPTIONS=detect_leaks=1 $(GTEST_PARALLEL) $< --print_test_times --serialize_test_cases
+	$(ASAN_RUNTIME_FLAGS) $(GTEST_PARALLEL) $< --print_test_times --serialize_test_cases
 
 debug_ubsan_test: $(DEBUG_UBSAN_TEST_BINARY) $(GTEST_PARALLEL)
 	$(GTEST_PARALLEL) $< --print_test_times --serialize_test_cases
@@ -133,14 +134,14 @@ $(BENCHMARK_BINARY): $(BENCHMARK_OBJECTS)
 
 benchmark: $(BENCHMARK_BINARY)
 	# Must *not* build google-benchmark with libPFM
-	./$< --benchmark_time_unit=s --benchmark_min_warmup_time=1 --benchmark_enable_random_interleaving=true --benchmark_repetitions=16 --benchmark_min_time=5s --benchmark_display_aggregates_only=true --benchmark_report_aggregates_only=true --benchmark_counters_tabular=true --benchmark_out_format=json --benchmark_out=$(BENCHMARK_OUT_FILE)
+	./$< --benchmark_time_unit=ms --benchmark_min_warmup_time=.5 --benchmark_enable_random_interleaving=true --benchmark_repetitions=10 --benchmark_min_time=0.1s --benchmark_display_aggregates_only=true --benchmark_report_aggregates_only=true --benchmark_counters_tabular=true --benchmark_out_format=json --benchmark_out=$(BENCHMARK_OUT_FILE)
 
 $(PERF_BINARY): $(BENCHMARK_OBJECTS)
 	$(CXX) $(RELEASE_FLAGS) $(LINK_OPT_FLAGS) $^ $(PERF_LINK_FLAGS) -o $@
 
 perf: $(PERF_BINARY)
 	# Must build google-benchmark with libPFM, follow https://gist.github.com/itzmeanjan/05dc3e946f635d00c5e0b21aae6203a7
-	./$< --benchmark_time_unit=s --benchmark_min_warmup_time=1 --benchmark_enable_random_interleaving=true --benchmark_repetitions=16 --benchmark_min_time=5s --benchmark_display_aggregates_only=true --benchmark_report_aggregates_only=true --benchmark_counters_tabular=true --benchmark_perf_counters=CYCLES --benchmark_out_format=json --benchmark_out=$(BENCHMARK_OUT_FILE)
+	./$< --benchmark_time_unit=ms --benchmark_min_warmup_time=.5 --benchmark_enable_random_interleaving=true --benchmark_repetitions=10 --benchmark_min_time=0.1s --benchmark_display_aggregates_only=true --benchmark_report_aggregates_only=true --benchmark_counters_tabular=true --benchmark_perf_counters=CYCLES --benchmark_out_format=json --benchmark_out=$(BENCHMARK_OUT_FILE)
 
 .PHONY: format clean
 
