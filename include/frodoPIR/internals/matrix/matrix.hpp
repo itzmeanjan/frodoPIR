@@ -73,24 +73,25 @@ public:
     return mat;
   }
 
-  // Given a seeded PRNG, this routine can be used for sampling a column vector of size `rows x 1`, s.t. each value is rejection sampled from
+  // Given a seeded PRNG, this routine can be used for sampling a row/ column vector, s.t. each value is rejection sampled from
   // a uniform ternary distribution χ. Returns sampled value ∈ {-1, 0, +1}.
   //
   // Collects inspiration from https://github.com/brave-experiments/frodo-pir/blob/15573960/src/utils.rs#L102-L125.
   static forceinline constexpr matrix_t sample_from_uniform_ternary_distribution(prng::prng_t& prng)
-    requires(cols == 1)
+    requires((rows == 1) || (cols == 1))
   {
     matrix_t mat{};
 
     constexpr size_t buffer_byte_len = (8 * shake128::RATE) / std::numeric_limits<uint8_t>::digits;
+    constexpr size_t total_num_elements = rows * cols;
 
     std::array<uint8_t, buffer_byte_len> buffer{};
     auto buffer_span = std::span(buffer);
 
     size_t buffer_offset = 0;
-    size_t r_idx = 0;
+    size_t e_idx = 0;
 
-    while (r_idx < rows) {
+    while (e_idx < total_num_elements) {
       zq_t val = std::numeric_limits<zq_t>::max();
 
       while (val > TERNARY_REJECTION_SAMPLING_MAX) {
@@ -113,8 +114,8 @@ public:
         ternary = std::numeric_limits<zq_t>::max();
       }
 
-      mat[{ r_idx, 0 }] = ternary;
-      r_idx++;
+      mat[e_idx] = ternary;
+      e_idx++;
     }
 
     return mat;
