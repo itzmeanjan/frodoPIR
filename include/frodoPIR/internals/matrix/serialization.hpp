@@ -108,14 +108,14 @@ parse_db_bytes(std::span<const uint8_t, db_entry_count * db_entry_byte_len> byte
 
 // Given a parsed database matrix as input s.t. each element of matrix has at max `mat_element_bitlen` significant bits, this routine serializes it
 // into little-endian bytes of length `db_entry_count x db_entry_byte_len`, which can be interpretted as a database having `db_entry_count` -many
-// entries s.t. each of those entries are `db_entry_byte_len` -bytes.
+// entries s.t. each of those entries are `db_entry_byte_len` -bytes, using multiple threads.
 //
 // M = parse_db_bytes(orig_database_bytes)
 // comp_database_bytes = serialize_parsed_db_matrix(M)
 // assert(orig_database_bytes == comp_database_bytes)
 template<size_t db_entry_count, size_t db_entry_byte_len, size_t mat_element_bitlen>
   requires(((0 < mat_element_bitlen) && (mat_element_bitlen < std::numeric_limits<frodoPIR_matrix::zq_t>::digits)))
-constexpr void
+void
 serialize_parsed_db_matrix(
   frodoPIR_matrix::matrix_t<db_entry_count, frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen)> const& db_matrix,
   std::span<uint8_t, db_entry_count * db_entry_byte_len> bytes)
@@ -125,7 +125,7 @@ serialize_parsed_db_matrix(
   constexpr size_t cols = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);
   constexpr size_t total_num_writable_bits_per_row = db_entry_byte_len * std::numeric_limits<uint8_t>::digits;
 
-  for (size_t r_idx = 0; r_idx < rows; r_idx++) {
+  auto serialize_parsed_db_row = [=, &db_matrix, &bytes](const size_t r_idx) {
     uint64_t buffer = 0;
     auto buffer_span = std::span<uint8_t, sizeof(buffer)>(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer));
 
@@ -153,7 +153,45 @@ serialize_parsed_db_matrix(
       c_idx++;
       byte_off += writable_num_bytes;
     }
+  };
+
+  constexpr size_t min_num_threads = 1;
+  const size_t hw_hinted_max_num_threads = std::thread::hardware_concurrency();
+  const size_t spawnable_num_threads = std::max(min_num_threads, hw_hinted_max_num_threads);
+
+  const size_t num_rows_per_thread = rows / spawnable_num_threads;
+  const size_t num_rows_distributed = num_rows_per_thread * spawnable_num_threads;
+  const size_t remaining_num_rows = rows - num_rows_distributed;
+
+  std::vector<std::thread> threads;
+  threads.reserve(spawnable_num_threads);
+
+  // Let's first spawn N -number of threads s.t. each of them will have equal many database rows to serialize.
+  for (size_t t_idx = 0; t_idx < spawnable_num_threads; t_idx++) {
+    const size_t r_idx_begin = t_idx * num_rows_per_thread;
+    const size_t r_idx_end = r_idx_begin + num_rows_per_thread;
+
+    auto thread = std::thread([=, &bytes]() {
+      for (size_t r_idx = r_idx_begin; r_idx < r_idx_end; r_idx++) {
+        serialize_parsed_db_row(r_idx);
+      }
+    });
+
+    threads.push_back(std::move(thread));
   }
+
+  // Finally, remaining rows, if any, are serialized by "this" parent thread.
+  if (remaining_num_rows > 0) {
+    const size_t final_thread_r_idx_begin = num_rows_distributed;
+    const size_t final_thread_r_idx_end = final_thread_r_idx_begin + remaining_num_rows;
+
+    for (size_t r_idx = final_thread_r_idx_begin; r_idx < final_thread_r_idx_end; r_idx++) {
+      serialize_parsed_db_row(r_idx);
+    }
+  }
+
+  // Now we wait until all of spawned threads finish their job.
+  std::ranges::for_each(threads, [](auto& handle) { handle.join(); });
 }
 
 // Given a row of parsed database s.t. each coefficient of input vector has at max `mat_element_bitlen` -many significant bits,
