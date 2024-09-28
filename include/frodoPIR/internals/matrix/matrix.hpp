@@ -246,40 +246,76 @@ public:
     const size_t hw_hinted_max_num_threads = std::thread::hardware_concurrency();
     const size_t spawnable_num_threads = std::max(min_num_threads, hw_hinted_max_num_threads);
 
-    const size_t num_rows_per_thread = rows / spawnable_num_threads;
-    const size_t num_rows_distributed = num_rows_per_thread * spawnable_num_threads;
-    const size_t remaining_num_rows = rows - num_rows_distributed;
+    // Distribute work either row-wise or column-wise, based on which one has more work.
+    constexpr size_t distributable_work_count = std::max(rows, rhs_cols);
+    constexpr bool if_distribute_across_row = rows >= rhs_cols;
+
+    const size_t num_work_per_thread = distributable_work_count / spawnable_num_threads;
+    const size_t num_work_distributed = num_work_per_thread * spawnable_num_threads;
+    const size_t remaining_num_work = distributable_work_count - num_work_distributed;
 
     std::vector<std::thread> threads;
     threads.reserve(spawnable_num_threads);
 
     // Let's first spawn N -number of threads s.t. each of them will have equal many rows to work on.
     for (size_t t_idx = 0; t_idx < spawnable_num_threads; t_idx++) {
-      const size_t r_idx_begin = t_idx * num_rows_per_thread;
-      const size_t r_idx_end = r_idx_begin + num_rows_per_thread;
+      if constexpr (if_distribute_across_row) {
+        // If there are more (or equal many) rows than columns, it's better to distribute computation of rows.
+        const size_t r_idx_begin = t_idx * num_work_per_thread;
+        const size_t r_idx_end = r_idx_begin + num_work_per_thread;
 
-      auto thread = std::thread([=, this, &rhs, &res]() {
-        for (size_t r_idx = r_idx_begin; r_idx < r_idx_end; r_idx++) {
+        auto thread = std::thread([=, this, &rhs, &res]() {
+          for (size_t r_idx = r_idx_begin; r_idx < r_idx_end; r_idx++) {
+            for (size_t k = 0; k < cols; k++) {
+              for (size_t c_idx = 0; c_idx < rhs_cols; c_idx++) {
+                res[{ r_idx, c_idx }] += (*this)[{ r_idx, k }] * rhs[{ k, c_idx }];
+              }
+            }
+          }
+        });
+
+        threads.push_back(std::move(thread));
+      } else {
+        // If there are more columns, it's better to distribute computation of columns across threads.
+        const size_t c_idx_begin = t_idx * num_work_per_thread;
+        const size_t c_idx_end = c_idx_begin + num_work_per_thread;
+
+        auto thread = std::thread([=, this, &rhs, &res]() {
+          for (size_t r_idx = 0; r_idx < rows; r_idx++) {
+            for (size_t k = 0; k < cols; k++) {
+              for (size_t c_idx = c_idx_begin; c_idx < c_idx_end; c_idx++) {
+                res[{ r_idx, c_idx }] += (*this)[{ r_idx, k }] * rhs[{ k, c_idx }];
+              }
+            }
+          }
+        });
+
+        threads.push_back(std::move(thread));
+      }
+    }
+
+    // Finally, remaining rows, if any, are processed by "this" parent thread.
+    if (remaining_num_work > 0) {
+      if constexpr (if_distribute_across_row) {
+        const size_t final_thread_r_idx_begin = num_work_distributed;
+        const size_t final_thread_r_idx_end = final_thread_r_idx_begin + remaining_num_work;
+
+        for (size_t r_idx = final_thread_r_idx_begin; r_idx < final_thread_r_idx_end; r_idx++) {
           for (size_t k = 0; k < cols; k++) {
             for (size_t c_idx = 0; c_idx < rhs_cols; c_idx++) {
               res[{ r_idx, c_idx }] += (*this)[{ r_idx, k }] * rhs[{ k, c_idx }];
             }
           }
         }
-      });
+      } else {
+        const size_t final_thread_c_idx_begin = num_work_distributed;
+        const size_t final_thread_c_idx_end = final_thread_c_idx_begin + remaining_num_work;
 
-      threads.push_back(std::move(thread));
-    }
-
-    // Finally, remaining rows, if any, are processed by "this" parent thread.
-    if (remaining_num_rows > 0) {
-      const size_t final_thread_r_idx_begin = num_rows_distributed;
-      const size_t final_thread_r_idx_end = final_thread_r_idx_begin + remaining_num_rows;
-
-      for (size_t r_idx = final_thread_r_idx_begin; r_idx < final_thread_r_idx_end; r_idx++) {
-        for (size_t k = 0; k < cols; k++) {
-          for (size_t c_idx = 0; c_idx < rhs_cols; c_idx++) {
-            res[{ r_idx, c_idx }] += (*this)[{ r_idx, k }] * rhs[{ k, c_idx }];
+        for (size_t r_idx = 0; r_idx < rows; r_idx++) {
+          for (size_t k = 0; k < cols; k++) {
+            for (size_t c_idx = final_thread_c_idx_begin; c_idx < final_thread_c_idx_end; c_idx++) {
+              res[{ r_idx, c_idx }] += (*this)[{ r_idx, k }] * rhs[{ k, c_idx }];
+            }
           }
         }
       }
