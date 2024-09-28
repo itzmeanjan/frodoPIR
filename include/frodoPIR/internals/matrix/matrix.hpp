@@ -182,14 +182,49 @@ public:
   }
 
   // Given two matrices A, B of equal dimension, this routine can be used for performing matrix addition over Zq,
-  // returning a matrix of same dimension.
-  forceinline constexpr matrix_t operator+(const matrix_t& rhs) const
+  // returning a matrix of same dimension, using multiple threads.
+  forceinline matrix_t operator+(const matrix_t& rhs) const
   {
     matrix_t res{};
 
-    for (size_t i = 0; i < rows * cols; i++) {
-      res[i] = (*this)[i] + rhs[i];
+    constexpr size_t min_num_threads = 1;
+    const size_t hw_hinted_max_num_threads = std::thread::hardware_concurrency();
+    const size_t spawnable_num_threads = std::max(min_num_threads, hw_hinted_max_num_threads);
+
+    const size_t total_num_elements = rows * cols;
+    const size_t num_elements_per_thread = total_num_elements / spawnable_num_threads;
+    const size_t num_elements_distributed = num_elements_per_thread * spawnable_num_threads;
+    const size_t remaining_num_elements = total_num_elements - num_elements_distributed;
+
+    std::vector<std::thread> threads;
+    threads.reserve(spawnable_num_threads);
+
+    // Let's first spawn N -number of threads s.t. each of them will have equal many rows to work on.
+    for (size_t t_idx = 0; t_idx < spawnable_num_threads; t_idx++) {
+      const size_t e_idx_begin = t_idx * num_elements_per_thread;
+      const size_t e_idx_end = e_idx_begin + num_elements_per_thread;
+
+      auto thread = std::thread([=, this, &rhs, &res]() {
+        for (size_t e_idx = e_idx_begin; e_idx < e_idx_end; e_idx++) {
+          res[e_idx] = (*this)[e_idx] + rhs[e_idx];
+        }
+      });
+
+      threads.push_back(std::move(thread));
     }
+
+    // Finally, remaining rows, if any, are processed by "this" parent thread.
+    if (remaining_num_elements > 0) {
+      const size_t final_thread_e_idx_begin = num_elements_distributed;
+      const size_t final_thread_e_idx_end = final_thread_e_idx_begin + remaining_num_elements;
+
+      for (size_t e_idx = final_thread_e_idx_begin; e_idx < final_thread_e_idx_end; e_idx++) {
+        res[e_idx] = (*this)[e_idx] + rhs[e_idx];
+      }
+    }
+
+    // Now we wait until all of spawned threads finish their job.
+    std::ranges::for_each(threads, [](auto& handle) { handle.join(); });
 
     return res;
   }
