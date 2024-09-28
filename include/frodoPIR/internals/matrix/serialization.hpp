@@ -3,6 +3,7 @@
 #include "frodoPIR/internals/matrix/vector.hpp"
 #include <cstdint>
 #include <limits>
+#include <thread>
 
 namespace frodoPIR_serialization {
 
@@ -10,10 +11,10 @@ namespace frodoPIR_serialization {
 // entry, this routines parses database into a matrix s.t. each element of matrix has at max `mat_element_bitlen` significant bits.
 //
 // Note, 0 < `mat_element_bitlen` < 32.
-// Collects inspiration from https://github.com/brave-experiments/frodo-pir/blob/15573960/src/db.rs#L229-L254.
+// Collects inspiration from https://github.com/brave-experiments/frodo-pir/blob/15573960/src/db.rs#L229-L254, while also making it multi-threaded.
 template<size_t db_entry_count, size_t db_entry_byte_len, size_t mat_element_bitlen>
   requires(((0 < mat_element_bitlen) && (mat_element_bitlen < std::numeric_limits<frodoPIR_matrix::zq_t>::digits)))
-constexpr frodoPIR_matrix::matrix_t<db_entry_count, frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen)>
+frodoPIR_matrix::matrix_t<db_entry_count, frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen)>
 parse_db_bytes(std::span<const uint8_t, db_entry_count * db_entry_byte_len> bytes)
 {
   constexpr auto mat_element_mask = (1ul << mat_element_bitlen) - 1ul;
@@ -22,7 +23,7 @@ parse_db_bytes(std::span<const uint8_t, db_entry_count * db_entry_byte_len> byte
 
   frodoPIR_matrix::matrix_t<rows, cols> mat{};
 
-  for (size_t r_idx = 0; r_idx < rows; r_idx++) {
+  auto parse_db_row = [=, &bytes, &mat](const size_t r_idx) {
     uint64_t buffer = 0;
     auto buffer_span = std::span<uint8_t, sizeof(buffer)>(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer));
 
@@ -62,7 +63,45 @@ parse_db_bytes(std::span<const uint8_t, db_entry_count * db_entry_byte_len> byte
     if ((buf_num_bits > 0) && (c_idx < cols)) {
       mat[{ r_idx, c_idx }] = buffer & mat_element_mask;
     }
+  };
+
+  constexpr size_t min_num_threads = 1;
+  const size_t hw_hinted_max_num_threads = std::thread::hardware_concurrency();
+  const size_t spawnable_num_threads = std::max(min_num_threads, hw_hinted_max_num_threads);
+
+  const size_t num_rows_per_thread = rows / spawnable_num_threads;
+  const size_t num_rows_distributed = num_rows_per_thread * spawnable_num_threads;
+  const size_t remaining_num_rows = rows - num_rows_distributed;
+
+  std::vector<std::thread> threads;
+  threads.reserve(spawnable_num_threads);
+
+  // Let's first spawn N -number of threads s.t. each of them will have equal many database rows to parse.
+  for (size_t t_idx = 0; t_idx < spawnable_num_threads; t_idx++) {
+    const size_t r_idx_begin = t_idx * num_rows_per_thread;
+    const size_t r_idx_end = r_idx_begin + num_rows_per_thread;
+
+    auto thread = std::thread([=, &bytes]() {
+      for (size_t r_idx = r_idx_begin; r_idx < r_idx_end; r_idx++) {
+        parse_db_row(r_idx);
+      }
+    });
+
+    threads.push_back(std::move(thread));
   }
+
+  // Finally, remaining rows, if any, are parsed by "this" parent thread.
+  if (remaining_num_rows > 0) {
+    const size_t final_thread_r_idx_begin = num_rows_distributed;
+    const size_t final_thread_r_idx_end = final_thread_r_idx_begin + remaining_num_rows;
+
+    for (size_t r_idx = final_thread_r_idx_begin; r_idx < final_thread_r_idx_end; r_idx++) {
+      parse_db_row(r_idx);
+    }
+  }
+
+  // Now we wait until all of spawned threads finish their job.
+  std::ranges::for_each(threads, [](auto& handle) { handle.join(); });
 
   return mat;
 }
