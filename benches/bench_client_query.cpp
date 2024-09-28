@@ -56,6 +56,7 @@ bench_client_query(benchmark::State& state)
 
     benchmark::DoNotOptimize(is_query_ready);
     benchmark::DoNotOptimize(client);
+    benchmark::DoNotOptimize(rand_db_row_index);
     benchmark::DoNotOptimize(query_bytes_span);
     benchmark::ClobberMemory();
 

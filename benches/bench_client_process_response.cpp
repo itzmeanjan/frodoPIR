@@ -55,6 +55,7 @@ bench_client_process_response(benchmark::State& state)
   for (auto _ : state) {
     is_response_decoded &= client.process_response(rand_db_row_index, response_bytes_span, db_row_bytes_span);
 
+    benchmark::DoNotOptimize(is_response_decoded);
     benchmark::DoNotOptimize(client);
     benchmark::DoNotOptimize(rand_db_row_index);
     benchmark::DoNotOptimize(response_bytes_span);
