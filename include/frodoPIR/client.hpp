@@ -88,12 +88,11 @@ public:
       return false;
     }
 
-    const auto s = frodoPIR_vector::column_vector_t<lwe_dimension>::sample_from_uniform_ternary_distribution(prng);  // secret vector
-    const auto e = frodoPIR_vector::column_vector_t<db_entry_count>::sample_from_uniform_ternary_distribution(prng); // error vector
+    const auto s = frodoPIR_vector::row_vector_t<lwe_dimension>::sample_from_uniform_ternary_distribution(prng);  // secret vector
+    const auto e = frodoPIR_vector::row_vector_t<db_entry_count>::sample_from_uniform_ternary_distribution(prng); // error vector
 
-    const auto s_transposed = s.transpose();
-    const auto b = s_transposed * this->A + e.transpose();
-    const auto c = s_transposed * this->M;
+    const auto b = s * this->A + e;
+    const auto c = s * this->M;
 
     this->queries[db_row_index] = client_query_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>{
       .status = query_status_t::prepared,
