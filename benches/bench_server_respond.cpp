@@ -66,24 +66,34 @@ bench_server_respond(benchmark::State& state)
 BENCHMARK(bench_server_respond<128, 1ul << 16, 256, 10, 1774>)
   ->Name("frodoPIR/server_respond/2^16/256B")
   ->ComputeStatistics("min", compute_min)
-  ->ComputeStatistics("max", compute_max);
+  ->ComputeStatistics("max", compute_max)
+  ->MeasureProcessCPUTime()
+  ->UseRealTime();
 
 BENCHMARK(bench_server_respond<128, 1ul << 17, 256, 10, 1774>)
   ->Name("frodoPIR/server_respond/2^17/256B")
   ->ComputeStatistics("min", compute_min)
-  ->ComputeStatistics("max", compute_max);
+  ->ComputeStatistics("max", compute_max)
+  ->MeasureProcessCPUTime()
+  ->UseRealTime();
 
 BENCHMARK(bench_server_respond<128, 1ul << 18, 256, 10, 1774>)
   ->Name("frodoPIR/server_respond/2^18/256B")
   ->ComputeStatistics("min", compute_min)
-  ->ComputeStatistics("max", compute_max);
+  ->ComputeStatistics("max", compute_max)
+  ->MeasureProcessCPUTime()
+  ->UseRealTime();
 
 BENCHMARK(bench_server_respond<128, 1ul << 19, 256, 9, 1774>)
   ->Name("frodoPIR/server_respond/2^19/256B")
   ->ComputeStatistics("min", compute_min)
-  ->ComputeStatistics("max", compute_max);
+  ->ComputeStatistics("max", compute_max)
+  ->MeasureProcessCPUTime()
+  ->UseRealTime();
 
 BENCHMARK(bench_server_respond<128, 1ul << 20, 256, 9, 1774>)
   ->Name("frodoPIR/server_respond/2^20/256B")
   ->ComputeStatistics("min", compute_min)
-  ->ComputeStatistics("max", compute_max);
+  ->ComputeStatistics("max", compute_max)
+  ->MeasureProcessCPUTime()
+  ->UseRealTime();
