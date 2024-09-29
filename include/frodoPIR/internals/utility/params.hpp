@@ -1,16 +1,35 @@
 #pragma once
 #include "frodoPIR/internals/matrix/matrix.hpp"
-#include <cmath>
 #include <cstddef>
 
 namespace frodoPIR_params {
+
+// Compile-time executable recursive integer square-root function.
+constexpr size_t
+ct_sqrt_helper(const size_t x, const size_t lo, const size_t hi)
+{
+  if (lo == hi) {
+    return lo;
+  }
+
+  const auto mid = (lo + hi + 1ul) / 2ul;
+  return ((x / mid) < mid) ? ct_sqrt_helper(x, lo, mid - 1ul) : ct_sqrt_helper(x, mid, hi);
+}
+
+// Homebrewed compile-time executable square-root implementation for integer values.
+// Taken from https://stackoverflow.com/a/27709195.
+constexpr size_t
+ct_sqrt(const size_t x)
+{
+  return ct_sqrt_helper(x, 0, (x / 2ul) + 1ul);
+}
 
 // Compile-time check, if chosen parameters for instantiating FrodoPIR, is correct, following Eq. 8 in section 5.1 of https://ia.cr/2022/981.
 consteval bool
 check_frodoPIR_param_correctness(const size_t db_entry_count, const size_t mat_element_bitlen)
 {
   const auto ρ = 1ul << mat_element_bitlen;
-  return frodoPIR_matrix::Q >= ((8 * ρ * ρ) * std::sqrt(db_entry_count));
+  return frodoPIR_matrix::Q >= ((8 * ρ * ρ) * ct_sqrt(db_entry_count));
 }
 
 // Compile-time check, if instantiated FrodoPIR uses one of recommended parameters in table 5 of https://ia.cr/2022/981.
