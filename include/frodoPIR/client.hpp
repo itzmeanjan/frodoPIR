@@ -4,6 +4,7 @@
 #include "frodoPIR/internals/matrix/vector.hpp"
 #include "frodoPIR/internals/rng/prng.hpp"
 #include "frodoPIR/internals/utility/force_inline.hpp"
+#include "frodoPIR/internals/utility/params.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -32,6 +33,7 @@ struct client_query_t
 
 // Frodo *P*rivate *I*nformation *R*etrieval Client
 template<size_t λ, size_t db_entry_count, size_t db_entry_byte_len, size_t mat_element_bitlen, size_t lwe_dimension>
+  requires(frodoPIR_params::check_frodoPIR_params(λ, db_entry_count, mat_element_bitlen, lwe_dimension))
 struct client_t
 {
 public:

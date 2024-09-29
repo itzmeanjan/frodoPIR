@@ -3,6 +3,7 @@
 #include "frodoPIR/internals/matrix/serialization.hpp"
 #include "frodoPIR/internals/matrix/vector.hpp"
 #include "frodoPIR/internals/utility/force_inline.hpp"
+#include "frodoPIR/internals/utility/params.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -12,6 +13,7 @@ namespace frodoPIR_server {
 
 // Frodo *P*rivate *I*nformation *R*etrieval Server
 template<size_t λ, size_t db_entry_count, size_t db_entry_byte_len, size_t mat_element_bitlen, size_t lwe_dimension>
+  requires(frodoPIR_params::check_frodoPIR_params(λ, db_entry_count, mat_element_bitlen, lwe_dimension))
 struct server_t
 {
 public:
