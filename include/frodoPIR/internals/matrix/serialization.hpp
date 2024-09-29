@@ -81,7 +81,7 @@ parse_db_bytes(std::span<const uint8_t, db_entry_count * db_entry_byte_len> byte
     const size_t r_idx_begin = t_idx * num_rows_per_thread;
     const size_t r_idx_end = r_idx_begin + num_rows_per_thread;
 
-    auto thread = std::thread([=, &bytes]() {
+    auto thread = std::thread([=]() {
       for (size_t r_idx = r_idx_begin; r_idx < r_idx_end; r_idx++) {
         parse_db_row(r_idx);
       }
@@ -171,7 +171,7 @@ serialize_parsed_db_matrix(
     const size_t r_idx_begin = t_idx * num_rows_per_thread;
     const size_t r_idx_end = r_idx_begin + num_rows_per_thread;
 
-    auto thread = std::thread([=, &bytes]() {
+    auto thread = std::thread([=]() {
       for (size_t r_idx = r_idx_begin; r_idx < r_idx_end; r_idx++) {
         serialize_parsed_db_row(r_idx);
       }
