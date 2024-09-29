@@ -83,32 +83,37 @@ BENCHMARK(bench_client_query<128, 1ul << 16, 256, 10, 1774>)
   ->ComputeStatistics("min", compute_min)
   ->ComputeStatistics("max", compute_max)
   ->MeasureProcessCPUTime()
-  ->UseRealTime();
+  ->UseRealTime()
+  ->Unit(benchmark::kMicrosecond);
 
 BENCHMARK(bench_client_query<128, 1ul << 17, 256, 10, 1774>)
   ->Name("frodoPIR/client_query/2^17/256B")
   ->ComputeStatistics("min", compute_min)
   ->ComputeStatistics("max", compute_max)
   ->MeasureProcessCPUTime()
-  ->UseRealTime();
+  ->UseRealTime()
+  ->Unit(benchmark::kMicrosecond);
 
 BENCHMARK(bench_client_query<128, 1ul << 18, 256, 10, 1774>)
   ->Name("frodoPIR/client_query/2^18/256B")
   ->ComputeStatistics("min", compute_min)
   ->ComputeStatistics("max", compute_max)
   ->MeasureProcessCPUTime()
-  ->UseRealTime();
+  ->UseRealTime()
+  ->Unit(benchmark::kMicrosecond);
 
 BENCHMARK(bench_client_query<128, 1ul << 19, 256, 9, 1774>)
   ->Name("frodoPIR/client_query/2^19/256B")
   ->ComputeStatistics("min", compute_min)
   ->ComputeStatistics("max", compute_max)
   ->MeasureProcessCPUTime()
-  ->UseRealTime();
+  ->UseRealTime()
+  ->Unit(benchmark::kMicrosecond);
 
 BENCHMARK(bench_client_query<128, 1ul << 20, 256, 9, 1774>)
   ->Name("frodoPIR/client_query/2^20/256B")
   ->ComputeStatistics("min", compute_min)
   ->ComputeStatistics("max", compute_max)
   ->MeasureProcessCPUTime()
-  ->UseRealTime();
+  ->UseRealTime()
+  ->Unit(benchmark::kMicrosecond);
