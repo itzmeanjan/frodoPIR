@@ -24,17 +24,11 @@ TEST(FrodoPIR, MatrixOperations)
   prng.read(μ_span);
 
   auto A = frodoPIR_matrix::matrix_t<rows, cols>::template generate<λ>(μ_span);
+  A.to_le_bytes(matA_bytes_span);
 
   {
-    auto A_transposed = A.transpose();
-    A_transposed.to_le_bytes(matA_bytes_span);
-  }
-
-  {
-    auto A_prime = frodoPIR_matrix::matrix_t<cols, rows>::from_le_bytes(matA_bytes_span);
-    auto A_prime_transposed = A_prime.transpose();
-
-    EXPECT_EQ(A, A_prime_transposed);
+    auto A_prime = frodoPIR_matrix::matrix_t<rows, cols>::from_le_bytes(matA_bytes_span);
+    EXPECT_EQ(A, A_prime);
   }
 
   {
