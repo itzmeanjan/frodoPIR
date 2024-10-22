@@ -8,6 +8,9 @@ template<size_t λ, size_t db_entry_count, size_t db_entry_byte_len, size_t mat_
 static void
 bench_client_query(benchmark::State& state)
 {
+  using server_t = frodoPIR_server::server_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>;
+  using client_t = frodoPIR_client::client_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>;
+
   constexpr size_t db_byte_len = db_entry_count * db_entry_byte_len;
   constexpr size_t parsed_db_column_count = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);
   constexpr size_t pub_matM_byte_len = frodoPIR_matrix::matrix_t<lwe_dimension, parsed_db_column_count>::get_byte_len();
@@ -33,10 +36,10 @@ bench_client_query(benchmark::State& state)
   prng.read(seed_μ_span);
   prng.read(db_bytes_span);
 
-  auto [server, M] = frodoPIR_server::server_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>::setup(seed_μ_span, db_bytes_span);
+  auto [server, M] = server_t::setup(seed_μ_span, db_bytes_span);
 
   M.to_le_bytes(pub_matM_bytes_span);
-  auto client = frodoPIR_client::client_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>::setup(seed_μ, pub_matM_bytes_span);
+  auto client = client_t::setup(seed_μ, pub_matM_bytes_span);
 
   size_t rand_db_row_index = [&]() {
     size_t buffer = 0;
