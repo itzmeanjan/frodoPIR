@@ -37,10 +37,22 @@ template<size_t λ, size_t db_entry_count, size_t db_entry_byte_len, size_t mat_
 struct client_t
 {
 public:
+  // Compile-time computable values.
+  static constexpr auto parsed_db_num_cols = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);
+  static constexpr auto pub_mat_M_byte_len = lwe_dimension * parsed_db_num_cols * sizeof(frodoPIR_matrix::zq_t);
+  static constexpr auto query_byte_len = db_entry_count * sizeof(frodoPIR_matrix::zq_t);
+  static constexpr auto response_byte_len = parsed_db_num_cols * sizeof(frodoPIR_matrix::zq_t);
+
+  // Type aliases.
+  using pub_mat_A_t = frodoPIR_matrix::matrix_t<lwe_dimension, db_entry_count>;
+  using pub_mat_M_t = frodoPIR_matrix::matrix_t<lwe_dimension, parsed_db_num_cols>;
+  using secret_vec_t = frodoPIR_vector::row_vector_t<lwe_dimension>;
+  using error_vec_t = frodoPIR_vector::row_vector_t<db_entry_count>;
+  using query_t = client_query_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>;
+  using response_t = frodoPIR_vector::row_vector_t<parsed_db_num_cols>;
+
   // Constructor(s)
-  explicit constexpr client_t(
-    frodoPIR_matrix::matrix_t<lwe_dimension, db_entry_count> pub_matA,
-    frodoPIR_matrix::matrix_t<lwe_dimension, frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen)> pub_matM)
+  explicit constexpr client_t(auto pub_matA, auto pub_matM)
     : A(std::move(pub_matA))
     , M(std::move(pub_matM))
   {
@@ -53,15 +65,10 @@ public:
 
   // Given a `λ` -bit seed and a byte serialized public matrix M, computed by frodoPIR server, this routine can be used
   // for setting up FrodoPIR client, ready to generate queries and process server response.
-  static forceinline constexpr client_t setup(
-    std::span<const uint8_t, λ / std::numeric_limits<uint8_t>::digits> seed_μ,
-    std::span<const uint8_t, lwe_dimension * frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen) * sizeof(frodoPIR_matrix::zq_t)>
-      pub_matM_bytes)
+  static forceinline constexpr client_t setup(std::span<const uint8_t, λ / std::numeric_limits<uint8_t>::digits> seed_μ,
+                                              std::span<const uint8_t, pub_mat_M_byte_len> pub_matM_bytes)
   {
-    constexpr auto cols = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);
-
-    return client_t(frodoPIR_matrix::matrix_t<lwe_dimension, db_entry_count>::template generate<λ>(seed_μ),
-                    frodoPIR_matrix::matrix_t<lwe_dimension, cols>::from_le_bytes(pub_matM_bytes));
+    return client_t(pub_mat_A_t::template generate<λ>(seed_μ), pub_mat_M_t::from_le_bytes(pub_matM_bytes));
   }
 
   // Given `n` -many database row indices, this routine prepares `n` -many queries, for enquiring their values,
@@ -90,13 +97,13 @@ public:
       return false;
     }
 
-    const auto s = frodoPIR_vector::row_vector_t<lwe_dimension>::sample_from_uniform_ternary_distribution(prng);  // secret vector
-    const auto e = frodoPIR_vector::row_vector_t<db_entry_count>::sample_from_uniform_ternary_distribution(prng); // error vector
+    const auto s = secret_vec_t::sample_from_uniform_ternary_distribution(prng); // secret vector
+    const auto e = error_vec_t::sample_from_uniform_ternary_distribution(prng);  // error vector
 
     const auto b = s * this->A + e;
     const auto c = s * this->M;
 
-    this->queries[db_row_index] = client_query_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>{
+    this->queries[db_row_index] = query_t{
       .status = query_status_t::prepared,
       .db_index = db_row_index,
       .b = b,
@@ -112,8 +119,7 @@ public:
   //
   // (a) Query is not yet prepared for requested database row index.
   // (b) Query is already sent to server for requested database row index.
-  [[nodiscard("Must use status of query finalization")]] constexpr bool query(const size_t db_row_index,
-                                                                              std::span<uint8_t, db_entry_count * sizeof(frodoPIR_matrix::zq_t)> query_bytes)
+  [[nodiscard("Must use status of query finalization")]] constexpr bool query(const size_t db_row_index, std::span<uint8_t, query_byte_len> query_bytes)
   {
     if (!this->queries.contains(db_row_index)) {
       return false;
@@ -139,10 +145,9 @@ public:
   //
   // (a) Query is not yet prepared for requested database row index.
   // (b) Query has not yet been sent to server, so can't process response for it.
-  [[nodiscard("Must use status of response decoding")]] constexpr bool process_response(
-    const size_t db_row_index,
-    std::span<const uint8_t, frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen) * sizeof(frodoPIR_matrix::zq_t)> response_bytes,
-    std::span<uint8_t, db_entry_byte_len> db_row_bytes)
+  [[nodiscard("Must use status of response decoding")]] constexpr bool process_response(const size_t db_row_index,
+                                                                                        std::span<const uint8_t, response_byte_len> response_bytes,
+                                                                                        std::span<uint8_t, db_entry_byte_len> db_row_bytes)
   {
     if (!this->queries.contains(db_row_index)) {
       return false;
@@ -155,12 +160,10 @@ public:
     constexpr auto rounding_factor = static_cast<frodoPIR_matrix::zq_t>(frodoPIR_matrix::Q / rho);
     constexpr auto rounding_floor = rounding_factor / 2;
 
-    constexpr size_t db_matrix_row_width = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);
+    response_t db_matrix_row{};
+    auto c_tilda = response_t::from_le_bytes(response_bytes);
 
-    frodoPIR_vector::row_vector_t<db_matrix_row_width> db_matrix_row{};
-    auto c_tilda = frodoPIR_vector::row_vector_t<db_matrix_row_width>::from_le_bytes(response_bytes);
-
-    for (size_t idx = 0; idx < db_matrix_row_width; idx++) {
+    for (size_t idx = 0; idx < parsed_db_num_cols; idx++) {
       const auto unscaled_res = c_tilda[idx] - this->queries[db_row_index].c[idx];
 
       const auto scaled_res = unscaled_res / rounding_factor;
@@ -181,9 +184,9 @@ public:
   }
 
 private:
-  frodoPIR_matrix::matrix_t<lwe_dimension, db_entry_count> A{};
-  frodoPIR_matrix::matrix_t<lwe_dimension, frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen)> M{};
-  std::unordered_map<size_t, client_query_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>> queries{};
+  pub_mat_A_t A{};
+  pub_mat_M_t M{};
+  std::unordered_map<size_t, query_t> queries{};
 };
 
 }

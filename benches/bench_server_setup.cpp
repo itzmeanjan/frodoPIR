@@ -6,6 +6,8 @@ template<size_t λ, size_t db_entry_count, size_t db_entry_byte_len, size_t mat_
 static void
 bench_server_setup(benchmark::State& state)
 {
+  using server_t = frodoPIR_server::server_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>;
+
   constexpr size_t db_byte_len = db_entry_count * db_entry_byte_len;
 
   std::array<uint8_t, λ / std::numeric_limits<uint8_t>::digits> seed_μ{};
@@ -20,7 +22,7 @@ bench_server_setup(benchmark::State& state)
   prng.read(db_bytes_span);
 
   for (auto _ : state) {
-    auto [server, M] = frodoPIR_server::server_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>::setup(seed_μ_span, db_bytes_span);
+    auto [server, M] = server_t::setup(seed_μ_span, db_bytes_span);
 
     benchmark::DoNotOptimize(seed_μ_span);
     benchmark::DoNotOptimize(db_bytes_span);
