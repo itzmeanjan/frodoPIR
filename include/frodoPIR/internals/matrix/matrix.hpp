@@ -318,7 +318,33 @@ public:
     requires(std::endian::native == std::endian::little)
   {
     auto elements_ptr = reinterpret_cast<const uint8_t*>(this->elements.data());
-    memcpy(bytes.data(), elements_ptr, bytes.size());
+    auto bytes_ptr = reinterpret_cast<uint8_t*>(bytes.data());
+
+    constexpr size_t min_num_threads = 1;
+    const size_t hw_hinted_max_num_threads = std::thread::hardware_concurrency();
+    const size_t spawnable_num_threads = std::max(min_num_threads, hw_hinted_max_num_threads);
+
+    constexpr size_t total_num_bytes = bytes.size();
+    const size_t num_bytes_per_thread = total_num_bytes / spawnable_num_threads;
+    const size_t num_bytes_distributed = num_bytes_per_thread * spawnable_num_threads;
+    const size_t remaining_num_bytes = total_num_bytes - num_bytes_distributed;
+
+    std::vector<std::thread> threads;
+    threads.reserve(spawnable_num_threads);
+
+    for (size_t t_idx = 0; t_idx < spawnable_num_threads; t_idx++) {
+      const size_t byte_idx_begin = t_idx * num_bytes_per_thread;
+
+      auto thread = std::thread([=, &elements_ptr, &bytes_ptr]() { memcpy(bytes_ptr + byte_idx_begin, elements_ptr + byte_idx_begin, num_bytes_per_thread); });
+      threads.push_back(std::move(thread));
+    }
+
+    if (remaining_num_bytes > 0) {
+      const size_t final_thread_byte_idx_begin = num_bytes_distributed;
+      memcpy(bytes_ptr + final_thread_byte_idx_begin, elements_ptr + final_thread_byte_idx_begin, remaining_num_bytes);
+    }
+
+    std::ranges::for_each(threads, [](auto& handle) { handle.join(); });
   }
 
   // Given a byte array of length `rows * cols * 4`, this routine can be used for deserializing it as a matrix of dimension
