@@ -28,7 +28,7 @@ SERVER | `ARM Neoverse-V2` i.e. AWS EC2 `c8g.2xlarge` | `Linux 6.8.0-1016-aws aa
 
 and this implementation of FrodoPIR is compiled with specified compiler, while also passing `-O3 -march=native -flto` compiler optimization flags.
 
-Step | `(a)` Time Taken on *DESKTOP* setup | `(b)` Time Taken on *SERVER* setup | Ratio `a / b`
+Step | `(a)` Time Taken on *DESKTOP* -grade machine | `(b)` Time Taken on *SERVER* -grade machine | Ratio `a / b`
 :-- | --: | --: | --:
 `server_setup` | 29.43 seconds | 29.3 seconds | ~1.00
 `client_setup` | 14.77 seconds | 16.27 seconds | ~0.91
