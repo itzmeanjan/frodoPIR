@@ -29,7 +29,7 @@ bench_server_respond(benchmark::State& state)
   auto query_bytes_span = std::span<uint8_t, query_byte_len>(query_bytes);
   auto response_bytes_span = std::span<uint8_t, response_byte_len>(response_bytes);
 
-  randomshake::randomshake_t<128> csprng{};
+  csprng::csprng_t csprng{};
 
   csprng.generate(seed_μ_span);
   csprng.generate(db_bytes_span);

@@ -1,5 +1,4 @@
 #include "frodoPIR/internals/matrix/serialization.hpp"
-#include "randomshake/randomshake.hpp"
 #include <gtest/gtest.h>
 #include <vector>
 
@@ -7,7 +6,7 @@ template<size_t db_entry_count, size_t db_entry_byte_len, size_t mat_element_bit
 static void
 test_db_parsing_and_serialization()
 {
-  randomshake::randomshake_t<128> csprng;
+  csprng::csprng_t csprng;
 
   constexpr size_t db_byte_len = db_entry_count * db_entry_byte_len;
 

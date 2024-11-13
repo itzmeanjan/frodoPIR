@@ -1,6 +1,5 @@
 #include "frodoPIR/client.hpp"
 #include "frodoPIR/server.hpp"
-#include "randomshake/randomshake.hpp"
 #include <algorithm>
 #include <cassert>
 #include <iomanip>
@@ -54,7 +53,7 @@ main()
   auto response_bytes_span = std::span<uint8_t, response_byte_len>(response_bytes);
   auto obtained_db_row_bytes_span = std::span<uint8_t, db_entry_byte_len>(obtained_db_row_bytes);
 
-  randomshake::randomshake_t<128> csprng{};
+  csprng::csprng_t csprng{};
 
   // Sample pseudo random seed
   csprng.generate(seed_μ);

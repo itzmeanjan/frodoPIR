@@ -16,7 +16,7 @@ bench_server_setup(benchmark::State& state)
   auto seed_μ_span = std::span(seed_μ);
   auto db_bytes_span = std::span<uint8_t, db_byte_len>(db_bytes);
 
-  randomshake::randomshake_t<128> csprng{};
+  csprng::csprng_t csprng{};
 
   csprng.generate(seed_μ_span);
   csprng.generate(db_bytes_span);

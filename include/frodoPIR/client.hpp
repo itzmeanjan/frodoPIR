@@ -2,8 +2,8 @@
 #include "frodoPIR/internals/matrix/matrix.hpp"
 #include "frodoPIR/internals/matrix/serialization.hpp"
 #include "frodoPIR/internals/matrix/vector.hpp"
+#include "frodoPIR/internals/utility/csprng.hpp"
 #include "frodoPIR/internals/utility/params.hpp"
-#include "randomshake/randomshake.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -74,7 +74,7 @@ public:
   // using FrodoPIR scheme. This function returns a boolean vector of length `n` s.t. each boolean value denotes
   // status of query preparation, for corresponding database row index, as appearing in `db_row_indices`, in order.
   [[nodiscard("Must use status of query preparation for DB row indices")]] constexpr std::vector<bool> prepare_query(std::span<const size_t> db_row_indices,
-                                                                                                                     randomshake::randomshake_t<128>& csprng)
+                                                                                                                     csprng::csprng_t& csprng)
   {
     std::vector<bool> query_prep_status;
     query_prep_status.reserve(db_row_indices.size());
@@ -90,7 +90,7 @@ public:
   // This routine returns boolean truth value if query for requested database row index is prepared - ready to be used, while also
   // placing an entry of query for corresponding database row index in the internal cache. But in case, query for corresponding database
   // row index has already been prepared, it returns false, denoting that no change has been done to the internal cache.
-  [[nodiscard("Must use status of query preparation")]] constexpr bool prepare_query(const size_t db_row_index, randomshake::randomshake_t<128>& csprng)
+  [[nodiscard("Must use status of query preparation")]] constexpr bool prepare_query(const size_t db_row_index, csprng::csprng_t& csprng)
   {
     if (this->queries.contains(db_row_index)) {
       return false;

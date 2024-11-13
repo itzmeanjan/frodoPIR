@@ -1,7 +1,6 @@
 #include "frodoPIR/client.hpp"
 #include "frodoPIR/internals/matrix/matrix.hpp"
 #include "frodoPIR/server.hpp"
-#include "randomshake/randomshake.hpp"
 #include "gtest/gtest.h"
 #include <algorithm>
 #include <array>
@@ -33,7 +32,7 @@ test_private_information_retrieval(const size_t num_queries)
   auto response_bytes_span = std::span<uint8_t, response_byte_len>(response_bytes);
   auto db_row_bytes_span = std::span<uint8_t, db_entry_byte_len>(db_row_bytes);
 
-  randomshake::randomshake_t<128> csprng{};
+  csprng::csprng_t csprng{};
 
   csprng.generate(seed_μ);
   csprng.generate(db_bytes);
@@ -101,7 +100,7 @@ TEST(FrodoPIR, ClientQueryCacheStateTransition)
   auto response_bytes_span = std::span<uint8_t, response_byte_len>(response_bytes);
   auto db_row_bytes_span = std::span<uint8_t, db_entry_byte_len>(db_row_bytes);
 
-  randomshake::randomshake_t<128> csprng{};
+  csprng::csprng_t csprng{};
 
   csprng.generate(seed_μ);
   csprng.generate(db_bytes);

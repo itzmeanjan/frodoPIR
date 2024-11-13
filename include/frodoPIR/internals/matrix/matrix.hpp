@@ -1,6 +1,6 @@
 #pragma once
+#include "frodoPIR/internals/utility/csprng.hpp"
 #include "frodoPIR/internals/utility/utils.hpp"
-#include "randomshake/randomshake.hpp"
 #include "sha3/shake128.hpp"
 #include <algorithm>
 #include <array>
@@ -57,7 +57,7 @@ public:
   {
     constexpr size_t row_byte_len = cols * sizeof(zq_t);
 
-    randomshake::randomshake_t<128> csprng(μ);
+    csprng::csprng_t csprng(μ);
     matrix_t mat{};
 
     for (size_t r_idx = 0; r_idx < rows; r_idx++) {
@@ -76,7 +76,7 @@ public:
   // a uniform ternary distribution χ. Returns sampled value ∈ {-1, 0, +1}.
   //
   // Collects inspiration from https://github.com/brave-experiments/frodo-pir/blob/15573960/src/utils.rs#L102-L125.
-  static forceinline constexpr matrix_t sample_from_uniform_ternary_distribution(randomshake::randomshake_t<128>& csprng)
+  static forceinline constexpr matrix_t sample_from_uniform_ternary_distribution(csprng::csprng_t& csprng)
     requires((rows == 1) || (cols == 1))
   {
     matrix_t mat{};
