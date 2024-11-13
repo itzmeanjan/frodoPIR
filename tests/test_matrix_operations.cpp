@@ -1,5 +1,5 @@
 #include "frodoPIR/internals/matrix/matrix.hpp"
-#include "frodoPIR/internals/rng/prng.hpp"
+#include "randomshake/randomshake.hpp"
 #include <array>
 #include <cstdint>
 #include <gtest/gtest.h>
@@ -20,8 +20,8 @@ TEST(FrodoPIR, MatrixOperations)
   auto μ_span = std::span(μ);
   auto matA_bytes_span = std::span<uint8_t, mat_byte_len>(matA_bytes);
 
-  prng::prng_t prng;
-  prng.read(μ_span);
+  randomshake::randomshake_t<128> csprng;
+  csprng.generate(μ_span);
 
   auto A = frodoPIR_matrix::matrix_t<rows, cols>::template generate<λ>(μ_span);
   A.to_le_bytes(matA_bytes_span);

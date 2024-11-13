@@ -1,8 +1,7 @@
 #pragma once
-#include "frodoPIR/internals/rng/prng.hpp"
-#include "frodoPIR/internals/utility/force_inline.hpp"
 #include "frodoPIR/internals/utility/utils.hpp"
-#include "shake128.hpp"
+#include "randomshake/randomshake.hpp"
+#include "sha3/shake128.hpp"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -58,7 +57,7 @@ public:
   {
     constexpr size_t row_byte_len = cols * sizeof(zq_t);
 
-    prng::prng_t prng(μ);
+    randomshake::randomshake_t<128> csprng(μ);
     matrix_t mat{};
 
     for (size_t r_idx = 0; r_idx < rows; r_idx++) {
@@ -67,7 +66,7 @@ public:
       auto row_begin_ptr = reinterpret_cast<uint8_t*>(mat.elements.data()) + row_begins_at;
       auto row_span = std::span<uint8_t, row_byte_len>(row_begin_ptr, row_byte_len);
 
-      prng.read(row_span);
+      csprng.generate(row_span);
     }
 
     return mat;
@@ -77,7 +76,7 @@ public:
   // a uniform ternary distribution χ. Returns sampled value ∈ {-1, 0, +1}.
   //
   // Collects inspiration from https://github.com/brave-experiments/frodo-pir/blob/15573960/src/utils.rs#L102-L125.
-  static forceinline constexpr matrix_t sample_from_uniform_ternary_distribution(prng::prng_t& prng)
+  static forceinline constexpr matrix_t sample_from_uniform_ternary_distribution(randomshake::randomshake_t<128>& csprng)
     requires((rows == 1) || (cols == 1))
   {
     matrix_t mat{};
@@ -99,7 +98,7 @@ public:
           const size_t remaining_num_random_bytes = buffer_span.size() - buffer_offset;
 
           std::copy_n(buffer_span.last(remaining_num_random_bytes).begin(), remaining_num_random_bytes, buffer_span.begin());
-          prng.read(buffer_span.subspan(remaining_num_random_bytes));
+          csprng.generate(buffer_span.subspan(remaining_num_random_bytes));
           buffer_offset = 0;
         }
 

@@ -1,7 +1,7 @@
 #include "frodoPIR/client.hpp"
 #include "frodoPIR/internals/matrix/matrix.hpp"
-#include "frodoPIR/internals/rng/prng.hpp"
 #include "frodoPIR/server.hpp"
+#include "randomshake/randomshake.hpp"
 #include "gtest/gtest.h"
 #include <algorithm>
 #include <array>
@@ -33,10 +33,10 @@ test_private_information_retrieval(const size_t num_queries)
   auto response_bytes_span = std::span<uint8_t, response_byte_len>(response_bytes);
   auto db_row_bytes_span = std::span<uint8_t, db_entry_byte_len>(db_row_bytes);
 
-  prng::prng_t prng{};
+  randomshake::randomshake_t<128> csprng{};
 
-  prng.read(seed_μ);
-  prng.read(db_bytes);
+  csprng.generate(seed_μ);
+  csprng.generate(db_bytes);
 
   auto [server, M] = frodoPIR_server::server_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>::setup(seed_μ, db_bytes_span);
 
@@ -48,12 +48,12 @@ test_private_information_retrieval(const size_t num_queries)
       size_t buffer = 0;
       auto buffer_span = std::span<uint8_t, sizeof(buffer)>(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer));
 
-      prng.read(buffer_span);
+      csprng.generate(buffer_span);
 
       return buffer % db_entry_count;
     }();
 
-    const auto is_query_preprocessed = client.prepare_query(db_row_index, prng);
+    const auto is_query_preprocessed = client.prepare_query(db_row_index, csprng);
     EXPECT_TRUE(is_query_preprocessed);
 
     const auto is_query_ready = client.query(db_row_index, query_bytes_span);
@@ -101,10 +101,10 @@ TEST(FrodoPIR, ClientQueryCacheStateTransition)
   auto response_bytes_span = std::span<uint8_t, response_byte_len>(response_bytes);
   auto db_row_bytes_span = std::span<uint8_t, db_entry_byte_len>(db_row_bytes);
 
-  prng::prng_t prng{};
+  randomshake::randomshake_t<128> csprng{};
 
-  prng.read(seed_μ);
-  prng.read(db_bytes);
+  csprng.generate(seed_μ);
+  csprng.generate(db_bytes);
 
   auto [server, M] = frodoPIR_server::server_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>::setup(seed_μ, db_bytes_span);
 
@@ -121,14 +121,14 @@ TEST(FrodoPIR, ClientQueryCacheStateTransition)
   EXPECT_FALSE(client.process_response(db_second_row_index, response_bytes_span, db_row_bytes_span));
 
   // Prepare query for a specific database row.
-  EXPECT_TRUE(client.prepare_query(db_first_row_index, prng));
+  EXPECT_TRUE(client.prepare_query(db_first_row_index, csprng));
   // Retry preparing query for the same database row.
-  EXPECT_FALSE(client.prepare_query(db_first_row_index, prng));
+  EXPECT_FALSE(client.prepare_query(db_first_row_index, csprng));
 
   // Prepare query for a different database row.
-  EXPECT_TRUE(client.prepare_query(db_second_row_index, prng));
+  EXPECT_TRUE(client.prepare_query(db_second_row_index, csprng));
   // Retry preparing query for same database row.
-  EXPECT_FALSE(client.prepare_query(db_second_row_index, prng));
+  EXPECT_FALSE(client.prepare_query(db_second_row_index, csprng));
 
   // Attempt processing response for specific database row even though query for that row is not yet sent.
   EXPECT_FALSE(client.process_response(db_first_row_index, response_bytes_span, db_row_bytes_span));
