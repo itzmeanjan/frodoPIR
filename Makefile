@@ -8,7 +8,8 @@ LINK_OPT_FLAGS := -flto
 
 I_FLAGS := -I ./include
 SHA3_INC_DIR := ./sha3/include
-DEP_IFLAGS := -I $(SHA3_INC_DIR)
+RANDOMSHAKE_INC_DIR := ./RandomShake/include
+DEP_IFLAGS := -I $(SHA3_INC_DIR) -I $(RANDOMSHAKE_INC_DIR)
 
 SRC_DIR := include
 FrodoPIR_SOURCES := $(shell find $(SRC_DIR) -name '*.hpp')
@@ -22,7 +23,10 @@ include benches/bench.mk
 $(GTEST_PARALLEL):
 	git submodule update --init gtest-parallel
 
-$(SHA3_INC_DIR): $(GTEST_PARALLEL)
+$(RANDOMSHAKE_INC_DIR): $(GTEST_PARALLEL)
+	git submodule update --init --recursive RandomShake
+
+$(SHA3_INC_DIR): $(RANDOMSHAKE_INC_DIR)
 	git submodule update --init sha3
 
 .PHONY: format clean
