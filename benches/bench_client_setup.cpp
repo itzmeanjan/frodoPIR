@@ -23,10 +23,10 @@ bench_client_setup(benchmark::State& state)
   auto db_bytes_span = std::span<uint8_t, db_byte_len>(db_bytes);
   auto pub_matM_bytes_span = std::span<uint8_t, pub_matM_byte_len>(pub_matM_bytes);
 
-  prng::prng_t prng{};
+  randomshake::randomshake_t<128> csprng{};
 
-  prng.read(seed_μ_span);
-  prng.read(db_bytes_span);
+  csprng.generate(seed_μ_span);
+  csprng.generate(db_bytes_span);
 
   auto [server, M] = server_t::setup(seed_μ_span, db_bytes_span);
 
