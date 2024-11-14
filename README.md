@@ -63,8 +63,8 @@ g++ (Ubuntu 14-20240412-0ubuntu1) 14.0.1 20240412 (experimental) [master r14-993
 For ensuring functional correctness of this implementation of FrodoPIR scheme, issue
 
 ```bash
-make -j                    # Run tests without any sort of sanitizers, with default C++ compiler.
-CXX=clang++ make -j        # Switch to non-default compiler, by setting variable `CXX`.
+make test -j                    # Run tests without any sort of sanitizers, with default C++ compiler.
+CXX=clang++ make test -j        # Switch to non-default compiler, by setting variable `CXX`.
 
 make debug_asan_test -j    # Run tests with AddressSanitizer enabled, with `-O1`.
 make release_asan_test -j  # Run tests with AddressSanitizer enabled, with `-O3 -march=native`.
@@ -79,6 +79,9 @@ PASSED TESTS (4/4):
     7399 ms: build/test/test.out FrodoPIR.ParsingDatabaseAndSerializingDatabaseMatrix
    66962 ms: build/test/test.out FrodoPIR.PrivateInformationRetrieval
 ```
+
+> [!NOTE]
+> There is a help menu, which introduces you to all available commands; just run `make` from the root directory of this project.
 
 ## Benchmarking
 
@@ -96,23 +99,13 @@ make perf -j       # If you have built google-benchmark library with libPFM supp
 
 ### On 12th Gen Intel(R) Core(TM) i7-1260P
 
-Compiled with **gcc version 14.0.1 20240412** on
-
-```bash
-$ uname -srm
-Linux 6.8.0-45-generic x86_64
-```
+Compiled with **gcc version 14.0.1 20240412** on `Linux 6.8.0-45-generic x86_64`.
 
 Benchmark result in JSON format @ [bench_result_on_Linux_6.8.0-45-generic_x86_64_with_g++_14.json](./bench_result_on_Linux_6.8.0-45-generic_x86_64_with_g++_14.json).
 
 ### On ARM Neoverse-V2 (AWS EC2 Instance `c8g.2xlarge`)
 
-Compiled with **gcc version 13.2.0** on
-
-```bash
-$ uname -srm
-Linux 6.8.0-1016-aws aarch64
-```
+Compiled with **gcc version 13.2.0** on `Linux 6.8.0-1016-aws aarch64`.
 
 Benchmark result in JSON format @ [bench_result_on_Linux_6.8.0-1016-aws_aarch64_with_g++_13.json](./bench_result_on_Linux_6.8.0-1016-aws_aarch64_with_g++_13.json).
 
@@ -121,7 +114,7 @@ Benchmark result in JSON format @ [bench_result_on_Linux_6.8.0-1016-aws_aarch64_
 
 ## Usage
 
-FrodoPIR is a header-only C++20 library implementing all recommended variants (see table 5) in https://ia.cr/2022/98. FrodoPIR header files live `./include` directory, while only additional dependency `sha3` header files live under `sha3/include`.
+FrodoPIR is a header-only C++20 library implementing all recommended variants (see table 5) in https://ia.cr/2022/98. FrodoPIR header files live `./include` directory, while additional dependency `sha3` and `RandomShake` header files live under `sha3/include` and `RandomShake/include`, respectively.
 
 - Let's begin by cloning the repository.
 
@@ -136,19 +129,13 @@ git clone https://github.com/itzmeanjan/frodoPIR.git --recurse-submodules
 
 ```bash
 pushd frodoPIR
-make -j # Also runs tests
+make test -j # Also runs tests
 popd
 ```
 
-- Now that we've all the dependencies to use FrodoPIR header-only library, let's run our [example program](./examples/frodoPIR.cpp).
+- Now that we've all the dependencies to use FrodoPIR header-only library, let's run our [example](./examples/frodoPIR.cpp) program, by issuing `make example`.
 
 ```bash
-FrodoPIR_HEADERS=include
-SHA3_HEADERS=sha3/include
-
-g++ -std=c++20 -Wall -Wextra -pedantic -O3 -march=native -I $FrodoPIR_HEADERS -I $SHA3_HEADERS examples/frodoPIR.cpp
-./a.out && echo $? # = 0 means success!
-
 Original database row bytes    : bf71e04189fff486c062cf1e814bedfc2205422807da319d4ac6f5a956d63e48
 PIR decoded database row bytes : bf71e04189fff486c062cf1e814bedfc2205422807da319d4ac6f5a956d63e48
 ```

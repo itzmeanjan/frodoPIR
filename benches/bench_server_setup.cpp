@@ -16,10 +16,10 @@ bench_server_setup(benchmark::State& state)
   auto seed_μ_span = std::span(seed_μ);
   auto db_bytes_span = std::span<uint8_t, db_byte_len>(db_bytes);
 
-  prng::prng_t prng{};
+  csprng::csprng_t csprng{};
 
-  prng.read(seed_μ_span);
-  prng.read(db_bytes_span);
+  csprng.generate(seed_μ_span);
+  csprng.generate(db_bytes_span);
 
   for (auto _ : state) {
     auto [server, M] = server_t::setup(seed_μ_span, db_bytes_span);

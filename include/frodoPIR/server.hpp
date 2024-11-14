@@ -2,7 +2,6 @@
 #include "frodoPIR/internals/matrix/matrix.hpp"
 #include "frodoPIR/internals/matrix/serialization.hpp"
 #include "frodoPIR/internals/matrix/vector.hpp"
-#include "frodoPIR/internals/utility/force_inline.hpp"
 #include "frodoPIR/internals/utility/params.hpp"
 #include <cstddef>
 #include <cstdint>

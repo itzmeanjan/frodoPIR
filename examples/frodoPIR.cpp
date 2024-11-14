@@ -2,6 +2,7 @@
 #include "frodoPIR/server.hpp"
 #include <algorithm>
 #include <cassert>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 
@@ -20,7 +21,7 @@ to_hex(std::span<const uint8_t> bytes)
 }
 
 // Compile with
-// g++ -std=c++20 -Wall -Wextra -pedantic -O3 -march=native -I include -I sha3/include examples/frodoPIR.cpp
+// g++ -std=c++20 -Wall -Wextra -pedantic -O3 -march=native -I include -I sha3/include -I RandomShake/include examples/frodoPIR.cpp
 int
 main()
 {
@@ -52,12 +53,12 @@ main()
   auto response_bytes_span = std::span<uint8_t, response_byte_len>(response_bytes);
   auto obtained_db_row_bytes_span = std::span<uint8_t, db_entry_byte_len>(obtained_db_row_bytes);
 
-  prng::prng_t prng{};
+  csprng::csprng_t csprng{};
 
   // Sample pseudo random seed
-  prng.read(seed_μ);
+  csprng.generate(seed_μ);
   // Fill pseudo random database content
-  prng.read(db_bytes);
+  csprng.generate(db_bytes);
 
   // Setup the FrodoPIR server
   auto [server, M] = frodoPIR_server::server_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>::setup(seed_μ, db_bytes_span);
@@ -70,7 +71,7 @@ main()
   constexpr size_t to_be_queried_db_row_index = 31;
 
   // Client preprocesses a query, keeps cached for now; to be used when enquiring content of specified row of the database
-  const auto is_query_preprocessed = client.prepare_query(to_be_queried_db_row_index, prng);
+  const auto is_query_preprocessed = client.prepare_query(to_be_queried_db_row_index, csprng);
   assert(is_query_preprocessed);
 
   // Client wants to query content of specific database row, for which we've already a query partially prepared

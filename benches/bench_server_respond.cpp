@@ -29,10 +29,10 @@ bench_server_respond(benchmark::State& state)
   auto query_bytes_span = std::span<uint8_t, query_byte_len>(query_bytes);
   auto response_bytes_span = std::span<uint8_t, response_byte_len>(response_bytes);
 
-  prng::prng_t prng{};
+  csprng::csprng_t csprng{};
 
-  prng.read(seed_μ_span);
-  prng.read(db_bytes_span);
+  csprng.generate(seed_μ_span);
+  csprng.generate(db_bytes_span);
 
   auto [server, M] = server_t::setup(seed_μ_span, db_bytes_span);
 
@@ -43,12 +43,12 @@ bench_server_respond(benchmark::State& state)
     size_t buffer = 0;
     auto buffer_span = std::span<uint8_t, sizeof(buffer)>(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer));
 
-    prng.read(buffer_span);
+    csprng.generate(buffer_span);
 
     return buffer % db_entry_count;
   }();
 
-  const auto is_query_preprocessed = client.prepare_query(rand_db_row_index, prng);
+  const auto is_query_preprocessed = client.prepare_query(rand_db_row_index, csprng);
   assert(is_query_preprocessed);
 
   const auto is_query_ready = client.query(rand_db_row_index, query_bytes_span);
