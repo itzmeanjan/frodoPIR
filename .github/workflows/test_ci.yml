@@ -14,31 +14,27 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         compiler: [g++, clang++]
         build_type: [debug, release]
-        test_type: ['standard', asan, ubsan]
+        test_type: [standard, asan, ubsan]
+      max-parallel: 4
 
     steps:
     - uses: actions/checkout@v4
-    - name: Setup Google-Test
-      run: |
-        pushd ~
-        git clone https://github.com/google/googletest.git -b v1.15.2
-        pushd googletest
-        mkdir build
-        pushd build
-        cmake .. -DBUILD_GMOCK=OFF
-        make -j
-        sudo make -j install
-        popd
-        popd
-        popd
-    - name: Execute Tests on ${{matrix.os}}, compiled with ${{matrix.compiler}}
-      if: ${{matrix.test_type == 'standard'}}
-      run: |
-        CXX=${{matrix.compiler}} make test -j
-        make clean
 
-    - name: Execute Tests with ${{matrix.test_type}}, in ${{matrix.build_type}} mode, on ${{matrix.os}}, compiled with ${{matrix.compiler}}
-      if: ${{matrix.test_type != 'standard'}}
+    - name: Setup Google Test
+      uses: Bacondish2023/setup-googletest@v1
+      with:
+        tag: v1.15.2
+
+    - name: Build and Test (${{matrix.os}}, ${{ matrix.compiler }}, ${{ matrix.build_type }}, ${{ matrix.test_type }})
       run: |
-        CXX=${{matrix.compiler}} make ${{matrix.build_type}}_${{matrix.test_type}}_test -j
-        make clean
+        CXX=${{ matrix.compiler }}
+        if [[ ${{ matrix.test_type }} == "standard" ]]; then
+          make test -j
+        else
+          make ${{ matrix.build_type }}_${{ matrix.test_type }}_test -j
+        fi
+
+    - name: Run Examples
+      if: ${{ matrix.test_type == 'standard' && matrix.build_type == 'release' }}
+      run: |
+        CXX=${{ matrix.compiler }} make example -j
