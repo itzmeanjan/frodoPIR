@@ -26,21 +26,19 @@ int
 main()
 {
   // Parameter setup for instantiating FrodoPIR
-  constexpr size_t λ = 128;
   constexpr size_t db_entry_count = 1ul << 16;
   constexpr size_t db_entry_byte_len = 32;
   constexpr size_t mat_element_bitlen = 10;
-  constexpr size_t lwe_dimension = 1774;
 
   // Database, query and response byte length
   constexpr size_t parsed_db_column_count = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);
   constexpr size_t db_byte_len = db_entry_count * db_entry_byte_len;
-  constexpr size_t pub_matM_byte_len = frodoPIR_matrix::matrix_t<lwe_dimension, parsed_db_column_count>::get_byte_len();
+  constexpr size_t pub_matM_byte_len = frodoPIR_matrix::matrix_t<frodoPIR_server::LWE_DIMENSION, parsed_db_column_count>::get_byte_len();
   constexpr size_t query_byte_len = frodoPIR_vector::row_vector_t<db_entry_count>::get_byte_len();
   constexpr size_t response_byte_len = frodoPIR_vector::row_vector_t<parsed_db_column_count>::get_byte_len();
 
   // Database, query and response memory allocation
-  std::array<uint8_t, λ / std::numeric_limits<uint8_t>::digits> seed_μ{};
+  std::array<uint8_t, frodoPIR_server::λ / std::numeric_limits<uint8_t>::digits> seed_μ{};
   std::vector<uint8_t> db_bytes(db_byte_len, 0);
   std::vector<uint8_t> pub_matM_bytes(pub_matM_byte_len, 0);
   std::vector<uint8_t> query_bytes(query_byte_len, 0);
@@ -61,11 +59,11 @@ main()
   csprng.generate(db_bytes);
 
   // Setup the FrodoPIR server
-  auto [server, M] = frodoPIR_server::server_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>::setup(seed_μ, db_bytes_span);
+  auto [server, M] = frodoPIR_server::server_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>::setup(seed_μ, db_bytes_span);
   M.to_le_bytes(pub_matM_bytes_span);
 
   // Setup a FrodoPIR client
-  auto client = frodoPIR_client::client_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>::setup(seed_μ, pub_matM_bytes_span);
+  auto client = frodoPIR_client::client_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>::setup(seed_μ, pub_matM_bytes_span);
 
   // We will enquire server about the content of this database row
   constexpr size_t to_be_queried_db_row_index = 31;
