@@ -5,15 +5,13 @@
 #include <cassert>
 #include <vector>
 
-static constexpr size_t λ = 128;
 static constexpr size_t db_entry_count = 1ul << 16;
 static constexpr size_t db_entry_byte_len = 256;
 static constexpr size_t mat_element_bitlen = 10;
-static constexpr size_t lwe_dimension = 1774;
 
 static constexpr size_t db_byte_len = db_entry_count * db_entry_byte_len;
 static constexpr size_t parsed_db_column_count = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);
-static constexpr size_t pub_matM_byte_len = frodoPIR_matrix::matrix_t<lwe_dimension, parsed_db_column_count>::get_byte_len();
+static constexpr size_t pub_matM_byte_len = frodoPIR_matrix::matrix_t<frodoPIR_server::LWE_DIMENSION, parsed_db_column_count>::get_byte_len();
 static constexpr size_t query_byte_len = frodoPIR_vector::row_vector_t<db_entry_count>::get_byte_len();
 static constexpr size_t response_byte_len = frodoPIR_vector::row_vector_t<parsed_db_column_count>::get_byte_len();
 
@@ -23,7 +21,7 @@ public:
   using server_t = frodoPIR_server::server_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>;
   using client_t = frodoPIR_client::client_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>;
 
-  std::array<uint8_t, λ / std::numeric_limits<uint8_t>::digits> seed_μ{};
+  std::array<uint8_t, frodoPIR_server::λ / std::numeric_limits<uint8_t>::digits> seed_μ{};
   std::vector<uint8_t> db_bytes;
   std::vector<uint8_t> pub_matM_bytes;
   std::vector<uint8_t> query_bytes;
