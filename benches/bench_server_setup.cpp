@@ -6,7 +6,7 @@ template<size_t λ, size_t db_entry_count, size_t db_entry_byte_len, size_t mat_
 static void
 bench_server_setup(benchmark::State& state)
 {
-  using server_t = frodoPIR_server::server_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>;
+  using server_t = frodoPIR_server::server_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>;
 
   constexpr size_t db_byte_len = db_entry_count * db_entry_byte_len;
 

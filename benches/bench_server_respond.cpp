@@ -21,8 +21,8 @@ static constexpr size_t response_byte_len = frodoPIR_vector::row_vector_t<parsed
 class FrodoPIROnlinePhaseFixture : public benchmark::Fixture
 {
 public:
-  using server_t = frodoPIR_server::server_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>;
-  using client_t = frodoPIR_client::client_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>;
+  using server_t = frodoPIR_server::server_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>;
+  using client_t = frodoPIR_client::client_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>;
 
   std::array<uint8_t, λ / std::numeric_limits<uint8_t>::digits> seed_μ{};
   std::vector<uint8_t> db_bytes;
