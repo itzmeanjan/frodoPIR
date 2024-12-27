@@ -57,6 +57,7 @@ public:
   {
   }
 
+  client_t() = default;
   client_t(const client_t&) = default;
   client_t(client_t&&) = default;
   client_t& operator=(const client_t&) = default;

@@ -34,6 +34,7 @@ public:
   {
   }
 
+  server_t() = default;
   server_t(const server_t&) = default;
   server_t(server_t&&) = default;
   server_t& operator=(const server_t&) = default;
