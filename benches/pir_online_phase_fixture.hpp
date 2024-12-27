@@ -5,9 +5,9 @@
 #include <cassert>
 #include <vector>
 
-static constexpr size_t db_entry_count = 1ul << 16;
-static constexpr size_t db_entry_byte_len = 256;
-static constexpr size_t mat_element_bitlen = 10;
+static constexpr size_t db_entry_count = 1ul << 20;
+static constexpr size_t db_entry_byte_len = 1024;
+static constexpr size_t mat_element_bitlen = 9;
 
 static constexpr size_t db_byte_len = db_entry_count * db_entry_byte_len;
 static constexpr size_t parsed_db_column_count = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);

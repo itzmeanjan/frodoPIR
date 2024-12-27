@@ -3,9 +3,9 @@
 #include <benchmark/benchmark.h>
 #include <format>
 
-static constexpr size_t db_entry_count = 1ul << 16;
-static constexpr size_t db_entry_byte_len = 256;
-static constexpr size_t mat_element_bitlen = 10;
+static constexpr size_t db_entry_count = 1ul << 20;
+static constexpr size_t db_entry_byte_len = 1024;
+static constexpr size_t mat_element_bitlen = 9;
 
 static void
 bench_server_setup(benchmark::State& state)
