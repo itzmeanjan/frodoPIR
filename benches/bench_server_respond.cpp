@@ -26,7 +26,7 @@ BENCHMARK_DEFINE_F(FrodoPIROnlinePhaseFixture, ServerRespond)(benchmark::State& 
 }
 
 BENCHMARK_REGISTER_F(FrodoPIROnlinePhaseFixture, ServerRespond)
-  ->Name(std::format("frodoPIR/server_respond/{}", format_bytes(db_byte_len)))
+  ->Name(std::format("frodoPIR/server_respond/{}/{}", format_number(db_entry_count), format_bytes(db_entry_byte_len)))
   ->ComputeStatistics("min", compute_min)
   ->ComputeStatistics("max", compute_max)
   ->MeasureProcessCPUTime()
