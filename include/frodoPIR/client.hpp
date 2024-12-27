@@ -36,7 +36,7 @@ static constexpr size_t SEED_BYTE_LEN = λ / std::numeric_limits<uint8_t>::digit
 
 // Frodo *P*rivate *I*nformation *R*etrieval Client
 template<size_t db_entry_count, size_t db_entry_byte_len, size_t mat_element_bitlen>
-  requires(frodoPIR_params::check_frodoPIR_params(λ, db_entry_count, mat_element_bitlen, LWE_DIMENSION))
+  requires(frodoPIR_params::check_frodoPIR_params(db_entry_count, mat_element_bitlen))
 struct client_t
 {
 public:

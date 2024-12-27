@@ -34,11 +34,9 @@ check_frodoPIR_param_correctness(const size_t db_entry_count, const size_t mat_e
 
 // Compile-time check, if instantiated FrodoPIR uses one of recommended parameters in table 5 of https://ia.cr/2022/981.
 consteval bool
-check_frodoPIR_params(const size_t λ, const size_t db_entry_count, const size_t mat_element_bitlen, const size_t lwe_dimension)
+check_frodoPIR_params(const size_t db_entry_count, const size_t mat_element_bitlen)
 {
   return check_frodoPIR_param_correctness(db_entry_count, mat_element_bitlen) && // First check if Eq. 8 of https://ia.cr/2022/981 holds
-         (λ == 128) &&                                                           // Only 128 -bit security level is supported
-         (lwe_dimension == 1774) &&                                              // LWE dimension is also fixed for all variants
          (((db_entry_count == (1ul << 16)) && (mat_element_bitlen == 10)) ||     // Database has 2^16 rows s.t. each row can be of arbitrary byte length
           ((db_entry_count == (1ul << 17)) && (mat_element_bitlen == 10)) ||     // Database has 2^17 rows s.t. each row can be of arbitrary byte length
           ((db_entry_count == (1ul << 18)) && (mat_element_bitlen == 10)) ||     // Database has 2^18 rows s.t. each row can be of arbitrary byte length
