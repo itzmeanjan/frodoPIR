@@ -28,6 +28,7 @@ public:
   std::vector<uint8_t> pub_matM_bytes;
   std::vector<uint8_t> query_bytes;
   std::vector<uint8_t> response_bytes;
+  std::vector<uint8_t> db_row_bytes;
 
   csprng::csprng_t csprng{};
 
@@ -50,6 +51,7 @@ public:
       pub_matM_bytes = std::vector<uint8_t>(pub_matM_byte_len, 0);
       query_bytes = std::vector<uint8_t>(query_byte_len, 0);
       response_bytes = std::vector<uint8_t>(response_byte_len, 0);
+      db_row_bytes = std::vector<uint8_t>(db_entry_byte_len, 0);
 
       auto seed_μ_span = std::span(seed_μ);
       auto db_bytes_span = std::span<uint8_t, db_byte_len>(db_bytes);
@@ -76,11 +78,13 @@ public:
       std::ranges::fill(pub_matM_bytes, 0);
       std::ranges::fill(query_bytes, 0);
       std::ranges::fill(response_bytes, 0);
+      std::ranges::fill(db_row_bytes, 0);
 
       db_bytes.resize(0);
       pub_matM_bytes.resize(0);
       query_bytes.resize(0);
       response_bytes.resize(0);
+      db_row_bytes.resize(0);
     }
   }
 };
