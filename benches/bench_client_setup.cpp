@@ -33,7 +33,6 @@ bench_client_setup(benchmark::State& state)
   csprng.generate(db_bytes_span);
 
   auto [server, M] = server_t::setup(seed_μ_span, db_bytes_span);
-
   M.to_le_bytes(pub_matM_bytes_span);
 
   for (auto _ : state) {
