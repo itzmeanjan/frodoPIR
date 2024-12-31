@@ -5,7 +5,6 @@
 FrodoPIR: Simple, Scalable, Single-Server Private Information Retrieval
 
 ## Introduction
-
 FrodoPIR is a very simple, stateful, single-server index-based *P*rivate *I*nformation *R*etrieval (PIR) scheme, built on top of *L*earning *W*ith *E*rror (LWE) problem, proposed in https://ia.cr/2022/981.
 
 FrodoPIR protocol can be split into offline and online phases s.t. offline phase can solely be performed by the server, doesn't require any input from clients. As soon as public parameters become available from server, client can begin preprocessing queries, making them ready for quick future use. A simplified description of the protocol is given below. See figure 1 of https://ia.cr/2022/981 for more details.
@@ -19,28 +18,34 @@ FrodoPIR protocol can be split into offline and online phases s.t. offline phase
   2) `server_respond`: Server responds to client's query, returning back response vector $\tilde{c}$.
   3) `client_process_response`: Client decodes server response, obtaining content of queried database row.
 
-To paint a more practical picture, imagine, we have a database with $2^{20}$ entries s.t. each entry is 256 -bytes, meaning database is of size 256 MB. We are setting up both server and client(s), on each of
+To paint a more practical picture, imagine, we have a database with $2^{20}$ (~1 million) entries s.t. each entry is 1024 -bytes (1kB), meaning database is of size 1 GB. We are setting up both server and client(s), on each of
 
-Machine Type | Machine | Kernel | Compiler
---- | --- | --- | ---
-DESKTOP | `12th Gen Intel(R) Core(TM) i7-1260P` | `Linux 6.8.0-45-generic x86_64` | `GCC 14.0.1`
-SERVER | `ARM Neoverse-V2` i.e. AWS EC2 `c8g.2xlarge` | `Linux 6.8.0-1016-aws aarch64` | `GCC 13.2.0`
+Machine Type | Machine | Kernel | Compiler | Memory Read Speed
+--- | --- | --- | --- | ---
+aarch64 server | AWS EC2 `m8g.8xlarge` | `Linux 6.8.0-1018-aws aarch64` | `GCC 13.2.0` | 28.25 GB/s
+x86_64 server | AWS EC2 `m7i.8xlarge` | `Linux 6.8.0-1018-aws x86_64` | `GCC 13.2.0` | 10.33 GB/s
 
 and this implementation of FrodoPIR is compiled with specified compiler, while also passing `-O3 -march=native -flto` compiler optimization flags.
 
-Step | `(a)` Time Taken on *DESKTOP* -grade machine | `(b)` Time Taken on *SERVER* -grade machine | Ratio `a / b`
+> [!NOTE]
+> Memory read speed is measured using `$ sysbench memory --memory-block-size=1G --memory-total-size=20G --memory-oper=read run` command.
+
+Step | `(a)` Time Taken on `aarch64` server | `(b)` Time Taken on `x86_64` server | Ratio `a / b`
 :-- | --: | --: | --:
-`server_setup` | 29.43 seconds | 29.3 seconds | ~1.00
-`client_setup` | 14.77 seconds | 16.27 seconds | ~0.91
-`client_preprocess_query` | 136.54 milliseconds | 74.5 milliseconds | ~1.83
-`client_query` | 449.73 microseconds | 169 microseconds | ~2.66
-`server_respond` | 99.49 milliseconds | 25.2 milliseconds | ~3.95
-`client_process_response` | 628.83 microseconds | 229 microseconds | ~2.75
+`server_setup` | 41 seconds | 60.1 seconds | 0.68
+`client_setup` | 21.7 seconds | 20.5 seconds | 1.05
+`client_preprocess_query` | 39.4 milliseconds | 65.6 milliseconds | 0.6
+`client_query` | 146 microseconds | 454 microseconds | 0.32
+`server_respond` | 41.6 milliseconds | 150 milliseconds | 0.27
+`client_process_response` | 782 microseconds | 1257 microseconds | 0.62
+
+So, bandwidth of the `server_respond` algorithm, which needs to traverse through the whole processed database, is
+- (a) For `aarch64` server: 24.03 GB/s
+- (b) For `x86_64` server: 6.66 GB/s
 
 Here I'm maintaining a zero-dependency, header-only C++20 library implementation of FrodoPIR scheme, supporting all parameter sets, as suggested in table 5 of https://ia.cr/2022/981. Using this library is very easy, follow [here](#usage).
 
 ## Prerequisites
-
 - A C++ compiler with support for compiling C++20 code.
 
 ```bash
@@ -59,7 +64,6 @@ g++ (Ubuntu 14-20240412-0ubuntu1) 14.0.1 20240412 (experimental) [master r14-993
 > Git submodule based dependencies will generally be imported automatically, but in case that doesn't work, you can manually initialize and update them by issuing `$ git submodule update --init` from inside the root of this repository.
 
 ## Testing
-
 For ensuring functional correctness of this implementation of FrodoPIR scheme, issue
 
 ```bash
@@ -84,7 +88,6 @@ PASSED TESTS (4/4):
 > There is a help menu, which introduces you to all available commands; just run `make` from the root directory of this project.
 
 ## Benchmarking
-
 Benchmarking of all 6 algorithms of FrodoPIR scheme can be done, by issuing
 
 ```bash
@@ -97,23 +100,13 @@ make perf -j       # If you have built google-benchmark library with libPFM supp
 > [!CAUTION]
 > You must put all the CPU cores on **performance** mode before running benchmark program, follow guide @ https://github.com/google/benchmark/blob/main/docs/reducing_variance.md.
 
-### On 12th Gen Intel(R) Core(TM) i7-1260P
-
-Compiled with **gcc version 14.0.1 20240412** on `Linux 6.8.0-45-generic x86_64`.
-
-Benchmark result in JSON format @ [bench_result_on_Linux_6.8.0-45-generic_x86_64_with_g++_14.json](./bench_result_on_Linux_6.8.0-45-generic_x86_64_with_g++_14.json).
-
-### On ARM Neoverse-V2 (AWS EC2 Instance `c8g.2xlarge`)
-
-Compiled with **gcc version 13.2.0** on `Linux 6.8.0-1016-aws aarch64`.
-
-Benchmark result in JSON format @ [bench_result_on_Linux_6.8.0-1016-aws_aarch64_with_g++_13.json](./bench_result_on_Linux_6.8.0-1016-aws_aarch64_with_g++_13.json).
+- **On AWS EC2 Instance `m8g.8xlarge`**: Benchmark result in JSON format @ [bench_result_on_Linux_6.8.0-1018-aws_aarch64_with_g++_13](./bench_result_on_Linux_6.8.0-1018-aws_aarch64_with_g++_13.json).
+- **On AWS EC2 Instance `m7i.8xlarge`**: Benchmark result in JSON format @ [bench_result_on_Linux_6.8.0-1018-aws_x86_64_with_g++_13](./bench_result_on_Linux_6.8.0-1018-aws_x86_64_with_g++_13.json).
 
 > [!NOTE]
 > More about AWS EC2 instances @ https://aws.amazon.com/ec2/instance-types.
 
 ## Usage
-
 FrodoPIR is a header-only C++20 library implementing all recommended variants (see table 5) in https://ia.cr/2022/98. FrodoPIR header files live `./include` directory, while additional dependency `sha3` and `RandomShake` header files live under `sha3/include` and `RandomShake/include`, respectively.
 
 - Let's begin by cloning the repository.
