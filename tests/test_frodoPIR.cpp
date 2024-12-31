@@ -37,10 +37,10 @@ test_private_information_retrieval(const size_t num_queries)
   csprng.generate(seed_μ);
   csprng.generate(db_bytes);
 
-  auto [server, M] = frodoPIR_server::server_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>::setup(seed_μ, db_bytes_span);
+  auto [server, M] = frodoPIR_server::server_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>::setup(seed_μ, db_bytes_span);
 
   M.to_le_bytes(pub_matM_bytes_span);
-  auto client = frodoPIR_client::client_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>::setup(seed_μ, pub_matM_bytes_span);
+  auto client = frodoPIR_client::client_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>::setup(seed_μ, pub_matM_bytes_span);
 
   for (size_t cur_query_count = 0; cur_query_count < num_queries; cur_query_count++) {
     const size_t db_row_index = [&]() {
@@ -105,10 +105,10 @@ TEST(FrodoPIR, ClientQueryCacheStateTransition)
   csprng.generate(seed_μ);
   csprng.generate(db_bytes);
 
-  auto [server, M] = frodoPIR_server::server_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>::setup(seed_μ, db_bytes_span);
+  auto [server, M] = frodoPIR_server::server_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>::setup(seed_μ, db_bytes_span);
 
   M.to_le_bytes(pub_matM_bytes_span);
-  auto client = frodoPIR_client::client_t<λ, db_entry_count, db_entry_byte_len, mat_element_bitlen, lwe_dimension>::setup(seed_μ, pub_matM_bytes_span);
+  auto client = frodoPIR_client::client_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>::setup(seed_μ, pub_matM_bytes_span);
 
   constexpr size_t db_first_row_index = 0;
   constexpr size_t db_second_row_index = db_first_row_index + 1;

@@ -30,25 +30,29 @@ struct client_query_t
   frodoPIR_vector::row_vector_t<frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen)> c;
 };
 
+static constexpr size_t λ = 128;
+static constexpr size_t LWE_DIMENSION = 1774;
+static constexpr size_t SEED_BYTE_LEN = λ / std::numeric_limits<uint8_t>::digits;
+
 // Frodo *P*rivate *I*nformation *R*etrieval Client
-template<size_t λ, size_t db_entry_count, size_t db_entry_byte_len, size_t mat_element_bitlen, size_t lwe_dimension>
-  requires(frodoPIR_params::check_frodoPIR_params(λ, db_entry_count, mat_element_bitlen, lwe_dimension))
+template<size_t db_entry_count, size_t db_entry_byte_len, size_t mat_element_bitlen>
+  requires(frodoPIR_params::check_frodoPIR_params(db_entry_count, mat_element_bitlen))
 struct client_t
 {
 public:
   // Compile-time computable values.
-  static constexpr auto parsed_db_num_cols = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);
-  static constexpr auto pub_mat_M_byte_len = lwe_dimension * parsed_db_num_cols * sizeof(frodoPIR_matrix::zq_t);
-  static constexpr auto query_byte_len = db_entry_count * sizeof(frodoPIR_matrix::zq_t);
-  static constexpr auto response_byte_len = parsed_db_num_cols * sizeof(frodoPIR_matrix::zq_t);
+  static constexpr auto NUM_COLUMNS_IN_PARSED_DB = frodoPIR_matrix::get_required_num_columns(db_entry_byte_len, mat_element_bitlen);
+  static constexpr auto PUBLIC_MATRIX_M_BYTE_LEN = LWE_DIMENSION * NUM_COLUMNS_IN_PARSED_DB * sizeof(frodoPIR_matrix::zq_t);
+  static constexpr auto QUERY_BYTE_LEN = db_entry_count * sizeof(frodoPIR_matrix::zq_t);
+  static constexpr auto RESPONSE_BYTE_LEN = NUM_COLUMNS_IN_PARSED_DB * sizeof(frodoPIR_matrix::zq_t);
 
   // Type aliases.
-  using pub_mat_A_t = frodoPIR_matrix::matrix_t<lwe_dimension, db_entry_count>;
-  using pub_mat_M_t = frodoPIR_matrix::matrix_t<lwe_dimension, parsed_db_num_cols>;
-  using secret_vec_t = frodoPIR_vector::row_vector_t<lwe_dimension>;
+  using pub_mat_A_t = frodoPIR_matrix::matrix_t<LWE_DIMENSION, db_entry_count>;
+  using pub_mat_M_t = frodoPIR_matrix::matrix_t<LWE_DIMENSION, NUM_COLUMNS_IN_PARSED_DB>;
+  using secret_vec_t = frodoPIR_vector::row_vector_t<LWE_DIMENSION>;
   using error_vec_t = frodoPIR_vector::row_vector_t<db_entry_count>;
   using query_t = client_query_t<db_entry_count, db_entry_byte_len, mat_element_bitlen>;
-  using response_t = frodoPIR_vector::row_vector_t<parsed_db_num_cols>;
+  using response_t = frodoPIR_vector::row_vector_t<NUM_COLUMNS_IN_PARSED_DB>;
 
   // Constructor(s)
   explicit constexpr client_t(auto pub_matA, auto pub_matM)
@@ -57,6 +61,7 @@ public:
   {
   }
 
+  client_t() = default;
   client_t(const client_t&) = default;
   client_t(client_t&&) = default;
   client_t& operator=(const client_t&) = default;
@@ -64,8 +69,7 @@ public:
 
   // Given a `λ` -bit seed and a byte serialized public matrix M, computed by frodoPIR server, this routine can be used
   // for setting up FrodoPIR client, ready to generate queries and process server response.
-  static forceinline constexpr client_t setup(std::span<const uint8_t, λ / std::numeric_limits<uint8_t>::digits> seed_μ,
-                                              std::span<const uint8_t, pub_mat_M_byte_len> pub_matM_bytes)
+  static forceinline constexpr client_t setup(std::span<const uint8_t, SEED_BYTE_LEN> seed_μ, std::span<const uint8_t, PUBLIC_MATRIX_M_BYTE_LEN> pub_matM_bytes)
   {
     return client_t(pub_mat_A_t::template generate<λ>(seed_μ), pub_mat_M_t::from_le_bytes(pub_matM_bytes));
   }
@@ -118,7 +122,7 @@ public:
   //
   // (a) Query is not yet prepared for requested database row index.
   // (b) Query is already sent to server for requested database row index.
-  [[nodiscard("Must use status of query finalization")]] constexpr bool query(const size_t db_row_index, std::span<uint8_t, query_byte_len> query_bytes)
+  [[nodiscard("Must use status of query finalization")]] constexpr bool query(const size_t db_row_index, std::span<uint8_t, QUERY_BYTE_LEN> query_bytes)
   {
     if (!this->queries.contains(db_row_index)) {
       return false;
@@ -145,7 +149,7 @@ public:
   // (a) Query is not yet prepared for requested database row index.
   // (b) Query has not yet been sent to server, so can't process response for it.
   [[nodiscard("Must use status of response decoding")]] constexpr bool process_response(const size_t db_row_index,
-                                                                                        std::span<const uint8_t, response_byte_len> response_bytes,
+                                                                                        std::span<const uint8_t, RESPONSE_BYTE_LEN> response_bytes,
                                                                                         std::span<uint8_t, db_entry_byte_len> db_row_bytes)
   {
     if (!this->queries.contains(db_row_index)) {
@@ -162,7 +166,7 @@ public:
     response_t db_matrix_row{};
     auto c_tilda = response_t::from_le_bytes(response_bytes);
 
-    for (size_t idx = 0; idx < parsed_db_num_cols; idx++) {
+    for (size_t idx = 0; idx < NUM_COLUMNS_IN_PARSED_DB; idx++) {
       const auto unscaled_res = c_tilda[idx] - this->queries[db_row_index].c[idx];
 
       const auto scaled_res = unscaled_res / rounding_factor;
