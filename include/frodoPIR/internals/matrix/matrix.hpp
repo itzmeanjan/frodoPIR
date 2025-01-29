@@ -177,17 +177,16 @@ public:
     const size_t spawnable_num_threads = std::max(min_num_threads, hw_hinted_max_num_threads);
 
     const size_t total_num_elements = rows * cols;
-    const size_t num_elements_per_thread = total_num_elements / spawnable_num_threads;
-    const size_t num_elements_distributed = num_elements_per_thread * spawnable_num_threads;
-    const size_t remaining_num_elements = total_num_elements - num_elements_distributed;
+    const size_t num_elements_per_thread = (total_num_elements + (spawnable_num_threads - 1)) / spawnable_num_threads;
 
     std::vector<std::thread> threads;
     threads.reserve(spawnable_num_threads);
 
-    // Let's first spawn N -number of threads s.t. each of them will have equal many rows to work on.
+    // Let's spawn N -number of threads s.t. each of first (N-1) of them will have equal many elements to work on,
+    // while the last one might have lesser many elements to process.
     for (size_t t_idx = 0; t_idx < spawnable_num_threads; t_idx++) {
       const size_t e_idx_begin = t_idx * num_elements_per_thread;
-      const size_t e_idx_end = e_idx_begin + num_elements_per_thread;
+      const size_t e_idx_end = std::min(e_idx_begin + num_elements_per_thread, total_num_elements);
 
       auto thread = std::thread([=, this, &rhs, &res]() {
         for (size_t e_idx = e_idx_begin; e_idx < e_idx_end; e_idx++) {
@@ -196,16 +195,6 @@ public:
       });
 
       threads.push_back(std::move(thread));
-    }
-
-    // Finally, remaining rows, if any, are processed by "this" parent thread.
-    if (remaining_num_elements > 0) {
-      const size_t final_thread_e_idx_begin = num_elements_distributed;
-      const size_t final_thread_e_idx_end = final_thread_e_idx_begin + remaining_num_elements;
-
-      for (size_t e_idx = final_thread_e_idx_begin; e_idx < final_thread_e_idx_end; e_idx++) {
-        res[e_idx] = (*this)[e_idx] + rhs[e_idx];
-      }
     }
 
     // Now we wait until all of spawned threads finish their job.
