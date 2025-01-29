@@ -234,7 +234,7 @@ public:
       if constexpr (if_distribute_across_row) {
         // If there are more (or equal many) rows than columns, it's better to distribute computation of rows.
         const size_t r_idx_begin = t_idx * num_work_per_thread;
-        const size_t r_idx_end = std::min(r_idx_begin + num_work_per_thread, rows);
+        const size_t r_idx_end = std::min(r_idx_begin + num_work_per_thread, distributable_work_count);
 
         auto thread = std::thread([=, this, &rhs, &res]() {
           for (size_t r_idx = r_idx_begin; r_idx < r_idx_end; r_idx++) {
@@ -250,7 +250,7 @@ public:
       } else {
         // If there are more columns, it's better to distribute computation of columns across threads.
         const size_t c_idx_begin = t_idx * num_work_per_thread;
-        const size_t c_idx_end = std::min(c_idx_begin + num_work_per_thread, rhs_cols);
+        const size_t c_idx_end = std::min(c_idx_begin + num_work_per_thread, distributable_work_count);
 
         auto thread = std::thread([=, this, &rhs, &res]() {
           for (size_t r_idx = 0; r_idx < rows; r_idx++) {
