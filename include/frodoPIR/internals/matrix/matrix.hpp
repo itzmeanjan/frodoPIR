@@ -1,5 +1,6 @@
 #pragma once
 #include "frodoPIR/internals/utility/csprng.hpp"
+#include "frodoPIR/internals/utility/force_inline.hpp"
 #include "frodoPIR/internals/utility/utils.hpp"
 #include "sha3/shake128.hpp"
 #include <algorithm>
@@ -268,6 +269,20 @@ public:
 
     // Now we wait until all of spawned threads finish their job.
     std::ranges::for_each(threads, [](auto& handle) { handle.join(); });
+
+    return res;
+  }
+
+  // Given a matrix of dimension m x n, returns a transposed matrix of dimension n x m.
+  forceinline matrix_t<cols, rows> transpose() const
+  {
+    matrix_t<cols, rows> res{};
+
+    for (size_t r_idx = 0; r_idx < cols; r_idx++) {
+      for (size_t c_idx = 0; c_idx < rows; c_idx++) {
+        res[{ r_idx, c_idx }] = (*this)[{ c_idx, r_idx }];
+      }
+    }
 
     return res;
   }
