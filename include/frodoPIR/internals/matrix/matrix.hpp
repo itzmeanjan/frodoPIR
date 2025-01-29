@@ -272,6 +272,51 @@ public:
     return res;
   }
 
+  // Given one row vector A ( of length cols ) and a transposed matrix B ( of dimension rhs_rows x rhs_cols ) s.t. cols == rhs_cols,
+  // this routine can be used for multiplying them over Zq, resulting into a row vector (C) of length rhs_rows.
+  //
+  // This vector matrix multiplication collects inspiration from
+  // https://github.com/itzmeanjan/ChalametPIR/blob/7b4fcae6dfaefeffa93458dbdd48a5b408beff71/src/pir_internals/matrix.rs#L63-L77,
+  // so that server-respond function can enjoy better memory bandwidth.
+  template<size_t rhs_rows, size_t rhs_cols>
+    requires((rows == 1) && (cols == rhs_cols))
+  forceinline matrix_t<rows, rhs_rows> row_vector_x_transposed_matrix(const matrix_t<rhs_rows, rhs_cols>& rhs) const
+  {
+    matrix_t<rows, rhs_rows> res{};
+
+    constexpr size_t min_num_threads = 1;
+    const size_t hw_hinted_max_num_threads = std::thread::hardware_concurrency();
+    const size_t spawnable_num_threads = std::max(min_num_threads, hw_hinted_max_num_threads);
+
+    constexpr size_t distributable_work_count = rhs_rows;
+    const size_t num_work_per_thread = (distributable_work_count + (spawnable_num_threads - 1)) / spawnable_num_threads;
+
+    std::vector<std::thread> threads;
+    threads.reserve(spawnable_num_threads);
+
+    // Let's spawn N -number of threads s.t. each of first (N-1) of them will have equal many cols to work on,
+    // while the last one might have lesser many cols to process.
+    for (size_t t_idx = 0; t_idx < spawnable_num_threads; t_idx++) {
+      const size_t c_idx_begin = t_idx * num_work_per_thread;
+      const size_t c_idx_end = std::min(c_idx_begin + num_work_per_thread, distributable_work_count);
+
+      auto thread = std::thread([=, this, &rhs, &res]() {
+        for (size_t c_idx = c_idx_begin; c_idx < c_idx_end; c_idx++) {
+          for (size_t k = 0; k < cols; k++) {
+            res[{ 0, c_idx }] += (*this)[{ 0, k }] * rhs[{ c_idx, k }];
+          }
+        }
+      });
+
+      threads.push_back(std::move(thread));
+    }
+
+    // Now we wait until all of spawned threads finish their job.
+    std::ranges::for_each(threads, [](auto& handle) { handle.join(); });
+
+    return res;
+  }
+
   // Given a matrix M of dimension `rows x cols`, this routine can be used for serializing each of its elements as
   // four little-endian bytes and concatenating them in order to compute a byte array of length `rows * cols * 4`.
   forceinline void to_le_bytes(std::span<uint8_t, matrix_t::get_byte_len()> bytes) const
