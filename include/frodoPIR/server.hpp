@@ -29,7 +29,7 @@ public:
   // Type aliases.
   using pub_mat_A_t = frodoPIR_matrix::matrix_t<LWE_DIMENSION, db_entry_count>;
   using pub_mat_M_t = frodoPIR_matrix::matrix_t<LWE_DIMENSION, NUM_COLUMNS_IN_PARSED_DB>;
-  using parsed_db_t = frodoPIR_matrix::matrix_t<db_entry_count, NUM_COLUMNS_IN_PARSED_DB>;
+  using parsed_db_transposed_mat_t = frodoPIR_matrix::matrix_t<NUM_COLUMNS_IN_PARSED_DB, db_entry_count>;
   using query_t = frodoPIR_vector::row_vector_t<db_entry_count>;
 
   // Constructor(s)
@@ -55,20 +55,20 @@ public:
     const auto D = frodoPIR_serialization::parse_db_bytes<db_entry_count, db_entry_byte_len, mat_element_bitlen>(db_bytes);
     const auto M = A * D;
 
-    return { server_t(D), M };
+    return { server_t(D.transpose()), M };
   }
 
   // Given byte serialized client query, this routine can be used for responding back to it, producing byte serialized server response.
   constexpr void respond(std::span<const uint8_t, QUERY_BYTE_LEN> query_bytes, std::span<uint8_t, RESPONSE_BYTE_LEN> response_bytes) const
   {
     const auto b_tilda = query_t::from_le_bytes(query_bytes);
-    const auto c_tilda = b_tilda * this->D;
 
+    const auto c_tilda = b_tilda.row_vector_x_transposed_matrix(this->D);
     c_tilda.to_le_bytes(response_bytes);
   }
 
 private:
-  parsed_db_t D{};
+  parsed_db_transposed_mat_t D{};
 };
 
 }
