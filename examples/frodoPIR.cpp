@@ -20,6 +20,21 @@ to_hex(std::span<const uint8_t> bytes)
   return ss.str();
 }
 
+const auto format_bytes = [](size_t bytes) -> std::string {
+  const char* suffixes[] = { "B", "KB", "MB", "GB" };
+  int index = 0;
+  double size = static_cast<double>(bytes);
+
+  while (size >= 1024 && index < 3) {
+    size /= 1024;
+    index++;
+  }
+
+  std::ostringstream oss;
+  oss << std::fixed << std::setprecision(1) << size << suffixes[index];
+  return oss.str();
+};
+
 // Compile with
 // g++ -std=c++20 -Wall -Wextra -pedantic -O3 -march=native -I include -I sha3/include -I RandomShake/include examples/frodoPIR.cpp
 int
@@ -27,7 +42,7 @@ main()
 {
   // Parameter setup for instantiating FrodoPIR
   constexpr size_t db_entry_count = 1ul << 16;
-  constexpr size_t db_entry_byte_len = 32;
+  constexpr size_t db_entry_byte_len = 1024;
   constexpr size_t mat_element_bitlen = 10;
 
   // Database, query and response byte length
@@ -36,6 +51,18 @@ main()
   constexpr size_t pub_matM_byte_len = frodoPIR_matrix::matrix_t<frodoPIR_server::LWE_DIMENSION, parsed_db_column_count>::get_byte_len();
   constexpr size_t query_byte_len = frodoPIR_vector::row_vector_t<db_entry_count>::get_byte_len();
   constexpr size_t response_byte_len = frodoPIR_vector::row_vector_t<parsed_db_column_count>::get_byte_len();
+
+  std::cout << "FrodoPIR:\n";
+  std::cout << "Number of entries in Index Database  : " << db_entry_count << "\n";
+  std::cout << "Size of each database entry          : " << format_bytes(db_entry_byte_len) << "\n";
+  std::cout << "DB size                              : " << format_bytes(db_byte_len) << "\n";
+  std::cout << "Encoded DB matrix element bit length : " << mat_element_bitlen << "\n";
+  std::cout << "Encoded DB matrix dimension          : " << db_entry_count << " x " << parsed_db_column_count << "\n";
+  std::cout << "Seed size                            : " << format_bytes(frodoPIR_server::SEED_BYTE_LEN) << "\n";
+  std::cout << "Hint download size                   : " << format_bytes(pub_matM_byte_len) << "\n";
+  std::cout << "Query vector size                    : " << format_bytes(query_byte_len) << "\n";
+  std::cout << "Response vector size                 : " << format_bytes(response_byte_len) << "\n";
+  std::cout << "\n";
 
   // Database, query and response memory allocation
   std::array<uint8_t, frodoPIR_server::λ / std::numeric_limits<uint8_t>::digits> seed_μ{};

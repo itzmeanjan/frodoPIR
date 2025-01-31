@@ -1,39 +1,39 @@
 {
   "context": {
-    "date": "2024-12-28T21:23:15+00:00",
-    "host_name": "ip-172-31-40-23",
+    "date": "2025-01-30T17:38:59+00:00",
+    "host_name": "ip-172-31-23-209",
     "executable": "./build/benchmark/bench.out",
     "num_cpus": 32,
-    "mhz_per_cpu": 2000,
+    "mhz_per_cpu": 3318,
     "cpu_scaling_enabled": false,
     "caches": [
       {
         "type": "Data",
         "level": 1,
-        "size": 65536,
-        "num_sharing": 1
+        "size": 49152,
+        "num_sharing": 2
       },
       {
         "type": "Instruction",
         "level": 1,
-        "size": 65536,
-        "num_sharing": 1
+        "size": 32768,
+        "num_sharing": 2
       },
       {
         "type": "Unified",
         "level": 2,
         "size": 2097152,
-        "num_sharing": 1
+        "num_sharing": 2
       },
       {
         "type": "Unified",
         "level": 3,
-        "size": 37748736,
+        "size": 110100480,
         "num_sharing": 32
       }
     ],
-    "load_avg": [1.50293,5.55029,4.2666],
-    "library_version": "v1.9.1-7-gf4f93b55",
+    "load_avg": [1.30908,0.835449,0.362305],
+    "library_version": "v1.9.1-22-g4a805f9f",
     "library_build_type": "release",
     "json_schema_version": 1
   },
@@ -49,10 +49,10 @@
       "aggregate_name": "mean",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 3.9925165333329460e+01,
-      "cpu_time": 6.3726014743336543e+02,
+      "real_time": 6.7678517099966484e+01,
+      "cpu_time": 1.4597920767000235e+03,
       "time_unit": "ms",
-      "items_per_second": 2.5081792857200931e+01
+      "items_per_second": 1.4782242314645572e+01
     },
     {
       "name": "frodoPIR/client_prepare_query/1.0M/1.0KB/process_time/real_time_median",
@@ -65,10 +65,10 @@
       "aggregate_name": "median",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 3.9428932833364648e+01,
-      "cpu_time": 6.3644382533326893e+02,
+      "real_time": 6.7512266749929495e+01,
+      "cpu_time": 1.4594821692505775e+03,
       "time_unit": "ms",
-      "items_per_second": 2.5362326978039896e+01
+      "items_per_second": 1.4812169054342327e+01
     },
     {
       "name": "frodoPIR/client_prepare_query/1.0M/1.0KB/process_time/real_time_stddev",
@@ -81,10 +81,10 @@
       "aggregate_name": "stddev",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 1.6125749607232762e+00,
-      "cpu_time": 7.1376189923740156e+00,
+      "real_time": 1.5129360081779855e+00,
+      "cpu_time": 1.6261936087248319e+01,
       "time_unit": "ms",
-      "items_per_second": 9.6131011311936077e-01
+      "items_per_second": 3.2342353364976917e-01
     },
     {
       "name": "frodoPIR/client_prepare_query/1.0M/1.0KB/process_time/real_time_cv",
@@ -97,10 +97,10 @@
       "aggregate_name": "cv",
       "aggregate_unit": "percentage",
       "iterations": 10,
-      "real_time": 4.0389938207146293e-02,
-      "cpu_time": 1.1200479146737094e-02,
+      "real_time": 2.2354745242766771e-02,
+      "cpu_time": 1.1139898857383665e-02,
       "time_unit": "ms",
-      "items_per_second": 3.8327009500174966e-02
+      "items_per_second": 2.1879193072713729e-02
     },
     {
       "name": "frodoPIR/client_prepare_query/1.0M/1.0KB/process_time/real_time_min",
@@ -113,10 +113,10 @@
       "aggregate_name": "min",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 3.8703760999851511e+01,
-      "cpu_time": 6.2781006466684630e+02,
+      "real_time": 6.5820811499975207e+01,
+      "cpu_time": 1.4382737085006738e+03,
       "time_unit": "ms",
-      "items_per_second": 2.3014775393862671e+01
+      "items_per_second": 1.4065880844364646e+01
     },
     {
       "name": "frodoPIR/client_prepare_query/1.0M/1.0KB/process_time/real_time_max",
@@ -129,10 +129,10 @@
       "aggregate_name": "max",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 4.3450347999775360e+01,
-      "cpu_time": 6.5108480199978658e+02,
+      "real_time": 7.1094018999929176e+01,
+      "cpu_time": 1.4927152499994918e+03,
       "time_unit": "ms",
-      "items_per_second": 2.5837282325194096e+01
+      "items_per_second": 1.5192763158205315e+01
     },
     {
       "name": "frodoPIR/client_process_response/1.0M/1.0KB/process_time/real_time_mean",
@@ -145,10 +145,10 @@
       "aggregate_name": "mean",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 7.8090946424774870e+02,
-      "cpu_time": 8.0746796928444030e+02,
+      "real_time": 9.5530776413962212e+02,
+      "cpu_time": 1.1559881075638637e+03,
       "time_unit": "us",
-      "items_per_second": 1.2805965334369371e+03
+      "items_per_second": 1.0470280007790177e+03
     },
     {
       "name": "frodoPIR/client_process_response/1.0M/1.0KB/process_time/real_time_median",
@@ -161,10 +161,10 @@
       "aggregate_name": "median",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 7.8182788267095111e+02,
-      "cpu_time": 8.0990541073587633e+02,
+      "real_time": 9.5106238276583042e+02,
+      "cpu_time": 1.1538258515868399e+03,
       "time_unit": "us",
-      "items_per_second": 1.2790541780576900e+03
+      "items_per_second": 1.0514562323412738e+03
     },
     {
       "name": "frodoPIR/client_process_response/1.0M/1.0KB/process_time/real_time_stddev",
@@ -177,10 +177,10 @@
       "aggregate_name": "stddev",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 4.5027471602798688e+00,
-      "cpu_time": 5.2637712459413617e+00,
+      "real_time": 1.5532583931235271e+01,
+      "cpu_time": 4.8174406415136403e+01,
       "time_unit": "us",
-      "items_per_second": 7.3913324583263789e+00
+      "items_per_second": 1.6738445878293440e+01
     },
     {
       "name": "frodoPIR/client_process_response/1.0M/1.0KB/process_time/real_time_cv",
@@ -193,10 +193,10 @@
       "aggregate_name": "cv",
       "aggregate_unit": "percentage",
       "iterations": 10,
-      "real_time": 5.7660296954108146e-03,
-      "cpu_time": 6.5188607426818366e-03,
+      "real_time": 1.6259245987835520e-02,
+      "cpu_time": 4.1673790673036802e-02,
       "time_unit": "us",
-      "items_per_second": 5.7717885886268208e-03
+      "items_per_second": 1.5986626781556535e-02
     },
     {
       "name": "frodoPIR/client_process_response/1.0M/1.0KB/process_time/real_time_min",
@@ -209,10 +209,10 @@
       "aggregate_name": "min",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 7.7431111174254954e+02,
-      "cpu_time": 7.9895858656954499e+02,
+      "real_time": 9.4099914485923364e+02,
+      "cpu_time": 1.1029991651443636e+03,
       "time_unit": "us",
-      "items_per_second": 1.2696702420890394e+03
+      "items_per_second": 1.0164879106166710e+03
     },
     {
       "name": "frodoPIR/client_process_response/1.0M/1.0KB/process_time/real_time_max",
@@ -225,10 +225,10 @@
       "aggregate_name": "max",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 7.8760607821654526e+02,
-      "cpu_time": 8.1343163141324544e+02,
+      "real_time": 9.8377953102593381e+02,
+      "cpu_time": 1.2538283242410498e+03,
       "time_unit": "us",
-      "items_per_second": 1.2914705534181842e+03
+      "items_per_second": 1.0627002218472712e+03
     },
     {
       "name": "frodoPIR/client_query/1.0M/1.0KB/process_time/real_time_mean",
@@ -241,10 +241,10 @@
       "aggregate_name": "mean",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 1.4632338859939574e+02,
-      "cpu_time": 1.4536611707847919e+02,
+      "real_time": 4.7177428911622673e+02,
+      "cpu_time": 4.7028321182273322e+02,
       "time_unit": "us",
-      "items_per_second": 6.8343138995613162e+03
+      "items_per_second": 2.1198031139091754e+03
     },
     {
       "name": "frodoPIR/client_query/1.0M/1.0KB/process_time/real_time_median",
@@ -257,10 +257,10 @@
       "aggregate_name": "median",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 1.4611767615776205e+02,
-      "cpu_time": 1.4514521185376253e+02,
+      "real_time": 4.7215538434937451e+02,
+      "cpu_time": 4.7067653767520653e+02,
       "time_unit": "us",
-      "items_per_second": 6.8437994073933678e+03
+      "items_per_second": 2.1179486908055605e+03
     },
     {
       "name": "frodoPIR/client_query/1.0M/1.0KB/process_time/real_time_stddev",
@@ -273,10 +273,10 @@
       "aggregate_name": "stddev",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 6.8974454570460442e-01,
-      "cpu_time": 7.0049948304714815e-01,
+      "real_time": 4.1163308549058044e+00,
+      "cpu_time": 4.0876202884778170e+00,
       "time_unit": "us",
-      "items_per_second": 3.2167828184744451e+01
+      "items_per_second": 1.8519668567601606e+01
     },
     {
       "name": "frodoPIR/client_query/1.0M/1.0KB/process_time/real_time_cv",
@@ -289,10 +289,10 @@
       "aggregate_name": "cv",
       "aggregate_unit": "percentage",
       "iterations": 10,
-      "real_time": 4.7138366074407122e-03,
-      "cpu_time": 4.8188635503620672e-03,
+      "real_time": 8.7252123523240601e-03,
+      "cpu_time": 8.6918269368683916e-03,
       "time_unit": "us",
-      "items_per_second": 4.7068116357384835e-03
+      "items_per_second": 8.7365040866692004e-03
     },
     {
       "name": "frodoPIR/client_query/1.0M/1.0KB/process_time/real_time_min",
@@ -305,10 +305,10 @@
       "aggregate_name": "min",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 1.4517221555633742e+02,
-      "cpu_time": 1.4417925391133895e+02,
+      "real_time": 4.6500550003848628e+02,
+      "cpu_time": 4.6359158157082732e+02,
       "time_unit": "us",
-      "items_per_second": 6.7806030483116738e+03
+      "items_per_second": 2.0901016964942996e+03
     },
     {
       "name": "frodoPIR/client_query/1.0M/1.0KB/process_time/real_time_max",
@@ -321,10 +321,10 @@
       "aggregate_name": "max",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 1.4747950777755580e+02,
-      "cpu_time": 1.4652825798175826e+02,
+      "real_time": 4.7844561902288632e+02,
+      "cpu_time": 4.7679579883875630e+02,
       "time_unit": "us",
-      "items_per_second": 6.8883704513824623e+03
+      "items_per_second": 2.1505121980648291e+03
     },
     {
       "name": "frodoPIR/client_setup/1.0M/1.0KB/process_time/real_time_mean",
@@ -337,10 +337,10 @@
       "aggregate_name": "mean",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 2.1699243396499969e+04,
-      "cpu_time": 2.1699423265500085e+04,
+      "real_time": 2.1057507193400215e+04,
+      "cpu_time": 2.1056606011099942e+04,
       "time_unit": "ms",
-      "items_per_second": 4.6084617167700341e-02
+      "items_per_second": 4.7489375707263852e-02
     },
     {
       "name": "frodoPIR/client_setup/1.0M/1.0KB/process_time/real_time_median",
@@ -353,10 +353,10 @@
       "aggregate_name": "median",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 2.1700397071499992e+04,
-      "cpu_time": 2.1700647451500117e+04,
+      "real_time": 2.1039507258000413e+04,
+      "cpu_time": 2.1038653379997413e+04,
       "time_unit": "ms",
-      "items_per_second": 4.6082106400449636e-02
+      "items_per_second": 4.7529636353411883e-02
     },
     {
       "name": "frodoPIR/client_setup/1.0M/1.0KB/process_time/real_time_stddev",
@@ -369,10 +369,10 @@
       "aggregate_name": "stddev",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 2.6329415063775777e+01,
-      "cpu_time": 2.6440872789243151e+01,
+      "real_time": 6.2402558564833825e+01,
+      "cpu_time": 6.2426873159921740e+01,
       "time_unit": "ms",
-      "items_per_second": 5.5905302845782917e-05
+      "items_per_second": 1.4014049178682410e-04
     },
     {
       "name": "frodoPIR/client_setup/1.0M/1.0KB/process_time/real_time_cv",
@@ -385,10 +385,10 @@
       "aggregate_name": "cv",
       "aggregate_unit": "percentage",
       "iterations": 10,
-      "real_time": 1.2133794060313937e-03,
-      "cpu_time": 1.2185057854178778e-03,
+      "real_time": 2.9634352248680161e-03,
+      "cpu_time": 2.9647167794759305e-03,
       "time_unit": "ms",
-      "items_per_second": 1.2131011665420901e-03
+      "items_per_second": 2.9509861879567427e-03
     },
     {
       "name": "frodoPIR/client_setup/1.0M/1.0KB/process_time/real_time_min",
@@ -401,10 +401,10 @@
       "aggregate_name": "min",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 2.1651607409999997e+04,
-      "cpu_time": 2.1651434255996719e+04,
+      "real_time": 2.0984151461000693e+04,
+      "cpu_time": 2.0983314779005013e+04,
       "time_unit": "ms",
-      "items_per_second": 4.5972635833568747e-02
+      "items_per_second": 4.7146214984855044e-02
     },
     {
       "name": "frodoPIR/client_setup/1.0M/1.0KB/process_time/real_time_max",
@@ -417,10 +417,10 @@
       "aggregate_name": "max",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 2.1752070158000606e+04,
-      "cpu_time": 2.1752476713001670e+04,
+      "real_time": 2.1210610445000384e+04,
+      "cpu_time": 2.1209789956992608e+04,
       "time_unit": "ms",
-      "items_per_second": 4.6185947355490135e-02
+      "items_per_second": 4.7655012491618375e-02
     },
     {
       "name": "frodoPIR/server_respond/1.0M/1.0KB/process_time/real_time_mean",
@@ -433,10 +433,10 @@
       "aggregate_name": "mean",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 4.1820076466683538e+01,
-      "cpu_time": 9.5676291396618285e+02,
+      "real_time": 3.0715859640022245e+01,
+      "cpu_time": 8.8429085359995975e+02,
       "time_unit": "ms",
-      "items_per_second": 2.3917886723951693e+01
+      "items_per_second": 3.2566186991417730e+01
     },
     {
       "name": "frodoPIR/server_respond/1.0M/1.0KB/process_time/real_time_median",
@@ -449,10 +449,10 @@
       "aggregate_name": "median",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 4.1614897833369469e+01,
-      "cpu_time": 9.6190188666757126e+02,
+      "real_time": 3.0809809700076585e+01,
+      "cpu_time": 8.8639989070070442e+02,
       "time_unit": "ms",
-      "items_per_second": 2.4029858199690633e+01
+      "items_per_second": 3.2457198658145806e+01
     },
     {
       "name": "frodoPIR/server_respond/1.0M/1.0KB/process_time/real_time_stddev",
@@ -465,10 +465,10 @@
       "aggregate_name": "stddev",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 6.9606530678727074e-01,
-      "cpu_time": 1.7567485453933710e+01,
+      "real_time": 5.6096585549001876e-01,
+      "cpu_time": 1.0005562396841054e+01,
       "time_unit": "ms",
-      "items_per_second": 3.9570174529764623e-01
+      "items_per_second": 5.9131524183599193e-01
     },
     {
       "name": "frodoPIR/server_respond/1.0M/1.0KB/process_time/real_time_cv",
@@ -481,10 +481,10 @@
       "aggregate_name": "cv",
       "aggregate_unit": "percentage",
       "iterations": 10,
-      "real_time": 1.6644285845383362e-02,
-      "cpu_time": 1.8361377931246443e-02,
+      "real_time": 1.8263068722943691e-02,
+      "cpu_time": 1.1314786708590594e-02,
       "time_unit": "ms",
-      "items_per_second": 1.6544176743733183e-02
+      "items_per_second": 1.8157337301779392e-02
     },
     {
       "name": "frodoPIR/server_respond/1.0M/1.0KB/process_time/real_time_min",
@@ -497,10 +497,10 @@
       "aggregate_name": "min",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 4.0791841333278477e+01,
-      "cpu_time": 9.2624341166811064e+02,
+      "real_time": 2.9759062399898539e+01,
+      "cpu_time": 8.6413804299954791e+02,
       "time_unit": "ms",
-      "items_per_second": 2.3187754299665102e+01
+      "items_per_second": 3.1352013180423516e+01
     },
     {
       "name": "frodoPIR/server_respond/1.0M/1.0KB/process_time/real_time_max",
@@ -513,10 +513,10 @@
       "aggregate_name": "max",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 4.3126211666579671e+01,
-      "cpu_time": 9.8237872766427859e+02,
+      "real_time": 3.1895878400064248e+01,
+      "cpu_time": 8.9785094600229058e+02,
       "time_unit": "ms",
-      "items_per_second": 2.4514706061679739e+01
+      "items_per_second": 3.3603209219501800e+01
     },
     {
       "name": "frodoPIR/server_setup/1.0M/1.0KB/process_time/real_time_mean",
@@ -529,10 +529,10 @@
       "aggregate_name": "mean",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 4.0912393570000226e+01,
-      "cpu_time": 5.3568066655379664e+02,
+      "real_time": 6.7972896044900338e+01,
+      "cpu_time": 1.2042952963337011e+03,
       "time_unit": "s",
-      "items_per_second": 2.4446034485958407e-02
+      "items_per_second": 1.4713000686602801e-02
     },
     {
       "name": "frodoPIR/server_setup/1.0M/1.0KB/process_time/real_time_median",
@@ -545,10 +545,10 @@
       "aggregate_name": "median",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 4.1026158523000959e+01,
-      "cpu_time": 5.4018009618199721e+02,
+      "real_time": 6.7734174828000505e+01,
+      "cpu_time": 1.2047041670360049e+03,
       "time_unit": "s",
-      "items_per_second": 2.4374707450132437e-02
+      "items_per_second": 1.4763606044040593e-02
     },
     {
       "name": "frodoPIR/server_setup/1.0M/1.0KB/process_time/real_time_stddev",
@@ -561,10 +561,10 @@
       "aggregate_name": "stddev",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 5.1859529217746292e-01,
-      "cpu_time": 2.2024005207246368e+01,
+      "real_time": 6.6667770198128984e-01,
+      "cpu_time": 3.7335639282634654e+00,
       "time_unit": "s",
-      "items_per_second": 3.1237292303748704e-04
+      "items_per_second": 1.4211578808680787e-04
     },
     {
       "name": "frodoPIR/server_setup/1.0M/1.0KB/process_time/real_time_cv",
@@ -577,10 +577,10 @@
       "aggregate_name": "cv",
       "aggregate_unit": "percentage",
       "iterations": 10,
-      "real_time": 1.2675750473756993e-02,
-      "cpu_time": 4.1114056530980984e-02,
+      "real_time": 9.8079931968899428e-03,
+      "cpu_time": 3.1002063527357021e-03,
       "time_unit": "s",
-      "items_per_second": 1.2778061129583670e-02
+      "items_per_second": 9.6591980870505949e-03
     },
     {
       "name": "frodoPIR/server_setup/1.0M/1.0KB/process_time/real_time_min",
@@ -593,10 +593,10 @@
       "aggregate_name": "min",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 3.9878972296000939e+01,
-      "cpu_time": 4.8225091007999436e+02,
+      "real_time": 6.7257376491999821e+01,
+      "cpu_time": 1.1972470501310017e+03,
       "time_unit": "s",
-      "items_per_second": 2.4066337032260517e-02
+      "items_per_second": 1.4358960396645507e-02
     },
     {
       "name": "frodoPIR/server_setup/1.0M/1.0KB/process_time/real_time_max",
@@ -609,10 +609,10 @@
       "aggregate_name": "max",
       "aggregate_unit": "time",
       "iterations": 10,
-      "real_time": 4.1551815661000546e+01,
-      "cpu_time": 5.6110159870900679e+02,
+      "real_time": 6.9642924861998836e+01,
+      "cpu_time": 1.2089161019849998e+03,
       "time_unit": "s",
-      "items_per_second": 2.5075871879985230e-02
+      "items_per_second": 1.4868257612143833e-02
     }
   ]
 }

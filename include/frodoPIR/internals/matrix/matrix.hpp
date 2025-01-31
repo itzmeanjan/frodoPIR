@@ -1,5 +1,6 @@
 #pragma once
 #include "frodoPIR/internals/utility/csprng.hpp"
+#include "frodoPIR/internals/utility/force_inline.hpp"
 #include "frodoPIR/internals/utility/utils.hpp"
 #include "sha3/shake128.hpp"
 #include <algorithm>
@@ -177,17 +178,16 @@ public:
     const size_t spawnable_num_threads = std::max(min_num_threads, hw_hinted_max_num_threads);
 
     const size_t total_num_elements = rows * cols;
-    const size_t num_elements_per_thread = total_num_elements / spawnable_num_threads;
-    const size_t num_elements_distributed = num_elements_per_thread * spawnable_num_threads;
-    const size_t remaining_num_elements = total_num_elements - num_elements_distributed;
+    const size_t num_elements_per_thread = (total_num_elements + (spawnable_num_threads - 1)) / spawnable_num_threads;
 
     std::vector<std::thread> threads;
     threads.reserve(spawnable_num_threads);
 
-    // Let's first spawn N -number of threads s.t. each of them will have equal many rows to work on.
+    // Let's spawn N -number of threads s.t. each of first (N-1) of them will have equal many elements to work on,
+    // while the last one might have lesser many elements to process.
     for (size_t t_idx = 0; t_idx < spawnable_num_threads; t_idx++) {
       const size_t e_idx_begin = t_idx * num_elements_per_thread;
-      const size_t e_idx_end = e_idx_begin + num_elements_per_thread;
+      const size_t e_idx_end = std::min(e_idx_begin + num_elements_per_thread, total_num_elements);
 
       auto thread = std::thread([=, this, &rhs, &res]() {
         for (size_t e_idx = e_idx_begin; e_idx < e_idx_end; e_idx++) {
@@ -196,16 +196,6 @@ public:
       });
 
       threads.push_back(std::move(thread));
-    }
-
-    // Finally, remaining rows, if any, are processed by "this" parent thread.
-    if (remaining_num_elements > 0) {
-      const size_t final_thread_e_idx_begin = num_elements_distributed;
-      const size_t final_thread_e_idx_end = final_thread_e_idx_begin + remaining_num_elements;
-
-      for (size_t e_idx = final_thread_e_idx_begin; e_idx < final_thread_e_idx_end; e_idx++) {
-        res[e_idx] = (*this)[e_idx] + rhs[e_idx];
-      }
     }
 
     // Now we wait until all of spawned threads finish their job.
@@ -234,19 +224,18 @@ public:
     constexpr size_t distributable_work_count = std::max(rows, rhs_cols);
     constexpr bool if_distribute_across_row = rows >= rhs_cols;
 
-    const size_t num_work_per_thread = distributable_work_count / spawnable_num_threads;
-    const size_t num_work_distributed = num_work_per_thread * spawnable_num_threads;
-    const size_t remaining_num_work = distributable_work_count - num_work_distributed;
+    const size_t num_work_per_thread = (distributable_work_count + (spawnable_num_threads - 1)) / spawnable_num_threads;
 
     std::vector<std::thread> threads;
     threads.reserve(spawnable_num_threads);
 
-    // Let's first spawn N -number of threads s.t. each of them will have equal many rows to work on.
+    // Let's spawn N -number of threads s.t. each of first (N-1) of them will have equal many rows/ cols to work on,
+    // while the last one might have lesser many rows/ cols to process.
     for (size_t t_idx = 0; t_idx < spawnable_num_threads; t_idx++) {
       if constexpr (if_distribute_across_row) {
         // If there are more (or equal many) rows than columns, it's better to distribute computation of rows.
         const size_t r_idx_begin = t_idx * num_work_per_thread;
-        const size_t r_idx_end = r_idx_begin + num_work_per_thread;
+        const size_t r_idx_end = std::min(r_idx_begin + num_work_per_thread, distributable_work_count);
 
         auto thread = std::thread([=, this, &rhs, &res]() {
           for (size_t r_idx = r_idx_begin; r_idx < r_idx_end; r_idx++) {
@@ -262,7 +251,7 @@ public:
       } else {
         // If there are more columns, it's better to distribute computation of columns across threads.
         const size_t c_idx_begin = t_idx * num_work_per_thread;
-        const size_t c_idx_end = c_idx_begin + num_work_per_thread;
+        const size_t c_idx_end = std::min(c_idx_begin + num_work_per_thread, distributable_work_count);
 
         auto thread = std::thread([=, this, &rhs, &res]() {
           for (size_t r_idx = 0; r_idx < rows; r_idx++) {
@@ -278,31 +267,63 @@ public:
       }
     }
 
-    // Finally, remaining rows, if any, are processed by "this" parent thread.
-    if (remaining_num_work > 0) {
-      if constexpr (if_distribute_across_row) {
-        const size_t final_thread_r_idx_begin = num_work_distributed;
-        const size_t final_thread_r_idx_end = final_thread_r_idx_begin + remaining_num_work;
+    // Now we wait until all of spawned threads finish their job.
+    std::ranges::for_each(threads, [](auto& handle) { handle.join(); });
 
-        for (size_t r_idx = final_thread_r_idx_begin; r_idx < final_thread_r_idx_end; r_idx++) {
-          for (size_t k = 0; k < cols; k++) {
-            for (size_t c_idx = 0; c_idx < rhs_cols; c_idx++) {
-              res[{ r_idx, c_idx }] += (*this)[{ r_idx, k }] * rhs[{ k, c_idx }];
-            }
-          }
-        }
-      } else {
-        const size_t final_thread_c_idx_begin = num_work_distributed;
-        const size_t final_thread_c_idx_end = final_thread_c_idx_begin + remaining_num_work;
+    return res;
+  }
 
-        for (size_t r_idx = 0; r_idx < rows; r_idx++) {
-          for (size_t k = 0; k < cols; k++) {
-            for (size_t c_idx = final_thread_c_idx_begin; c_idx < final_thread_c_idx_end; c_idx++) {
-              res[{ r_idx, c_idx }] += (*this)[{ r_idx, k }] * rhs[{ k, c_idx }];
-            }
-          }
-        }
+  // Given a matrix of dimension m x n, returns a transposed matrix of dimension n x m.
+  forceinline matrix_t<cols, rows> transpose() const
+  {
+    matrix_t<cols, rows> res{};
+
+    for (size_t r_idx = 0; r_idx < cols; r_idx++) {
+      for (size_t c_idx = 0; c_idx < rows; c_idx++) {
+        res[{ r_idx, c_idx }] = (*this)[{ c_idx, r_idx }];
       }
+    }
+
+    return res;
+  }
+
+  // Given one row vector A ( of length cols ) and a transposed matrix B ( of dimension rhs_rows x rhs_cols ) s.t. cols == rhs_cols,
+  // this routine can be used for multiplying them over Zq, resulting into a row vector (C) of length rhs_rows.
+  //
+  // This vector matrix multiplication collects inspiration from
+  // https://github.com/itzmeanjan/ChalametPIR/blob/7b4fcae6dfaefeffa93458dbdd48a5b408beff71/src/pir_internals/matrix.rs#L63-L77,
+  // so that server-respond function can enjoy better memory bandwidth.
+  template<size_t rhs_rows, size_t rhs_cols>
+    requires((rows == 1) && (cols == rhs_cols))
+  forceinline matrix_t<rows, rhs_rows> row_vector_x_transposed_matrix(const matrix_t<rhs_rows, rhs_cols>& rhs) const
+  {
+    matrix_t<rows, rhs_rows> res{};
+
+    constexpr size_t min_num_threads = 1;
+    const size_t hw_hinted_max_num_threads = std::thread::hardware_concurrency();
+    const size_t spawnable_num_threads = std::max(min_num_threads, hw_hinted_max_num_threads);
+
+    constexpr size_t distributable_work_count = rhs_rows;
+    const size_t num_work_per_thread = (distributable_work_count + (spawnable_num_threads - 1)) / spawnable_num_threads;
+
+    std::vector<std::thread> threads;
+    threads.reserve(spawnable_num_threads);
+
+    // Let's spawn N -number of threads s.t. each of first (N-1) of them will have equal many cols to work on,
+    // while the last one might have lesser many cols to process.
+    for (size_t t_idx = 0; t_idx < spawnable_num_threads; t_idx++) {
+      const size_t c_idx_begin = t_idx * num_work_per_thread;
+      const size_t c_idx_end = std::min(c_idx_begin + num_work_per_thread, distributable_work_count);
+
+      auto thread = std::thread([=, this, &rhs, &res]() {
+        for (size_t c_idx = c_idx_begin; c_idx < c_idx_end; c_idx++) {
+          for (size_t k = 0; k < cols; k++) {
+            res[{ 0, c_idx }] += (*this)[{ 0, k }] * rhs[{ c_idx, k }];
+          }
+        }
+      });
+
+      threads.push_back(std::move(thread));
     }
 
     // Now we wait until all of spawned threads finish their job.
