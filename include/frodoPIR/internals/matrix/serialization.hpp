@@ -25,8 +25,6 @@ parse_db_bytes(std::span<const uint8_t, db_entry_count * db_entry_byte_len> byte
 
   auto parse_db_row = [=, &bytes, &mat](const size_t r_idx) {
     uint64_t buffer = 0;
-    auto buffer_span = std::span<uint8_t, sizeof(buffer)>(reinterpret_cast<uint8_t*>(&buffer), sizeof(buffer));
-
     size_t buf_num_bits = 0;
     size_t c_idx = 0;
 
