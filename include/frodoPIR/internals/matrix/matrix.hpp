@@ -2,7 +2,8 @@
 #include "frodoPIR/internals/utility/csprng.hpp"
 #include "frodoPIR/internals/utility/force_inline.hpp"
 #include "frodoPIR/internals/utility/utils.hpp"
-#include "sha3/shake128.hpp"
+#include "sha3/turboshake128.hpp"
+#include "sha3/turboshake256.hpp"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -56,9 +57,17 @@ public:
     requires(std::endian::native == std::endian::little)
   static forceinline matrix_t generate(std::span<const uint8_t, λ / std::numeric_limits<uint8_t>::digits> μ)
   {
-    constexpr size_t row_byte_len = cols * sizeof(zq_t);
+    // Pass `λ`-bit seed μ through TurboSHAKE128 to produce longer (= 136-bytes) seed need to initialize RandomSHAKE CSPRNG.
+    std::array<uint8_t, csprng::csprng_t::seed_byte_len> seed{ 0 };
 
-    csprng::csprng_t csprng(μ);
+    turboshake128::turboshake128_t xof;
+    xof.absorb(μ);
+    xof.finalize();
+    xof.squeeze(seed);
+
+    csprng::csprng_t csprng(seed);
+
+    constexpr size_t row_byte_len = cols * sizeof(zq_t);
     matrix_t mat{};
 
     for (size_t r_idx = 0; r_idx < rows; r_idx++) {
@@ -82,7 +91,7 @@ public:
   {
     matrix_t mat{};
 
-    constexpr size_t buffer_byte_len = (8 * shake128::RATE) / std::numeric_limits<uint8_t>::digits;
+    constexpr size_t buffer_byte_len = (8 * turboshake256::RATE) / std::numeric_limits<uint8_t>::digits;
     constexpr size_t total_num_elements = rows * cols;
 
     std::array<uint8_t, buffer_byte_len> buffer{};

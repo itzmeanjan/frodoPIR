@@ -3,7 +3,7 @@
 
 namespace csprng {
 
-// Cryptographically Secure PRNG, offering 128 -bit security.
-using csprng_t = randomshake::randomshake_t<128>;
+// Cryptographically Secure PRNG, backed by TurboSHAKE256 XOF.
+using csprng_t = randomshake::randomshake_t<>;
 
 }
